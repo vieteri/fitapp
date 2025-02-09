@@ -2,8 +2,12 @@
 
 import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { User } from "@supabase/auth-js";
+import { revalidatePath } from 'next/cache';
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -39,21 +43,26 @@ export const signUpAction = async (formData: FormData) => {
   }
 };
 
-export const signInAction = async (formData: FormData) => {
+export const signInAction = async (formData: FormData, setUser: (user: User | null) => void) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
-    return encodedRedirect("error", "/sign-in", error.message);
+    throw new Error(error.message);
   }
 
-  return redirect("/protected");
+  if (data.session) {
+    const { user } = data.session;
+    setUser(user);
+  }
+
+  return redirect("/");
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
@@ -132,3 +141,29 @@ export const signOutAction = async () => {
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
+
+export async function startEmptyWorkout() {
+  const supabase = await createClient();
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  // Create a new empty workout
+  const { data: workout, error } = await supabase
+    .from('workouts')
+    .insert({
+      name: 'Custom Workout',
+      user_id: user.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error('Failed to create workout');
+  }
+
+  revalidatePath('/workouts');
+  redirect(`/workouts/${workout.id}`);
+}
