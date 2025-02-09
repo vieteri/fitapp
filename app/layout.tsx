@@ -1,10 +1,37 @@
-"use client";
-
+import { Metadata, Viewport } from 'next';
 import { GeistSans } from "geist/font/sans";
 import { Providers } from "@/components/providers";
 import "@/app/globals.css";
 import { Header } from "@/components/ui/header";
 import { Footer } from "@/components/ui/footer";
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
+export const metadata: Metadata = {
+  title: {
+    default: 'FitApp - Your Personal Fitness Companion',
+    template: '%s | FitApp'
+  },
+  description: 'Track your workouts, create custom routines, and achieve your fitness goals with FitApp',
+  keywords: ['fitness', 'workout', 'exercise', 'gym', 'training', 'health'],
+  authors: [{ name: 'FitApp Team' }],
+  openGraph: {
+    title: 'FitApp - Your Personal Fitness Companion',
+    description: 'Track your workouts, create custom routines, and achieve your fitness goals',
+    url: 'https://fitapp.com',
+    siteName: 'FitApp',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FitApp - Your Personal Fitness Companion',
+    description: 'Track your workouts, create custom routines, and achieve your fitness goals',
+  },
+  robots: 'index, follow',
+};
 
 export default function RootLayout({
   children,

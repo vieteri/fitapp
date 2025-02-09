@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 function RoutineCardSkeleton() {
   return (
@@ -16,7 +17,7 @@ function RoutineCardSkeleton() {
   );
 }
 
-export function RoutinesList() {
+function RoutinesListContent() {
   const [routines, setRoutines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,5 +84,13 @@ export function RoutinesList() {
         </Link>
       ))}
     </div>
+  );
+}
+
+export function RoutinesList() {
+  return (
+    <ErrorBoundary>
+      <RoutinesListContent />
+    </ErrorBoundary>
   );
 } 

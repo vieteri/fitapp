@@ -1,6 +1,9 @@
+'use client';
+
+import { withErrorBoundary } from "./with-error-boundary";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 
-export function Footer() {
+function FooterContent() {
   return (
     <footer className="w-full border-t border-t-foreground/10">
       <div className="container max-w-7xl mx-auto px-6 py-8">
@@ -22,4 +25,6 @@ export function Footer() {
       </div>
     </footer>
   );
-} 
+}
+
+export const Footer = withErrorBoundary(FooterContent); 

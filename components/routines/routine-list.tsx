@@ -29,16 +29,6 @@ export function RoutineList({ routines, isLoading, onDelete }: RoutineListProps)
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">My Routines</h2>
-        <Link href="/routines/new">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            New Routine
-          </Button>
-        </Link>
-      </div>
-
       {routines.length === 0 ? (
         <Card className="p-6 text-center">
           <DumbbellIcon className="w-12 h-12 mx-auto text-muted-foreground" />

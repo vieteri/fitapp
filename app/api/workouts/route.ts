@@ -14,20 +14,66 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: workout, error } = await supabase
+    const body = await request.json();
+    
+    if (!body.name) {
+      return NextResponse.json(
+        { error: 'Name is required' },
+        { status: 400 }
+      );
+    }
+
+    // Create workout
+    const { data: workout, error: workoutError } = await supabase
       .from('workouts')
       .insert({
-        name: 'Custom Workout',
+        name: body.name,
+        description: body.description,
         user_id: user.id,
       })
       .select()
       .single();
 
-    if (error) {
+    if (workoutError) {
+      console.error('Error creating workout:', workoutError);
       return NextResponse.json(
         { error: 'Failed to create workout' },
         { status: 500 }
       );
+    }
+
+    // Create workout exercises if provided
+    if (body.exercises?.length > 0) {
+      const { error: exercisesError } = await supabase
+        .from('workout_exercises')
+        .insert(
+          body.exercises.map((ex: {
+            exercise_id: string;
+            reps: number;
+            sets: number;
+            weight?: number;
+            duration_minutes?: number;
+            order_index: number;
+          }) => ({
+            workout_id: workout.id,
+            exercise_id: ex.exercise_id,
+            sets: ex.sets,
+            reps: ex.reps,
+            weight: ex.weight || null,
+            duration_minutes: ex.duration_minutes || null,
+            order_index: ex.order_index
+          }))
+        );
+
+      if (exercisesError) {
+        console.error('Error creating workout exercises:', exercisesError);
+        // Delete the workout since exercise creation failed
+        await supabase.from('workouts').delete().eq('id', workout.id);
+        return NextResponse.json(
+          { error: 'Failed to create workout exercises' },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({ workout });

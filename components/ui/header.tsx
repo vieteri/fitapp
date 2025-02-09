@@ -1,10 +1,13 @@
+'use client';
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { User } from "@supabase/auth-js";
 import { useAuth } from "@/context/auth-context";
+import { withErrorBoundary } from "./with-error-boundary";
 
-export function Header() {
+function HeaderContent() {
   const { user } = useAuth();
   const supabase = createClient();
 
@@ -73,3 +76,5 @@ export function Header() {
     </header>
   );
 }
+
+export const Header = withErrorBoundary(HeaderContent);
