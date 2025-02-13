@@ -342,7 +342,16 @@ export type Workout = Tables<'workouts'> & {
   workout_exercises?: WorkoutExercise[];
   routine?: Routine;
 }
-export type WorkoutExercise = Database['public']['Tables']['workout_exercises']['Row']
+export type WorkoutExercise = Database['public']['Tables']['workout_exercises']['Row'] & {
+  exercise?: {
+    id: string;
+    name: string;
+    description: string | null;
+    muscle_group: string;
+    created_at: string;
+    updated_at: string | null;
+  };
+}
 
 // Helper type for joined data
 export type RoutineWithExercises = Routine & {
@@ -352,7 +361,5 @@ export type RoutineWithExercises = Routine & {
 }
 
 export type WorkoutWithExercises = Workout & {
-  workout_exercises: (WorkoutExercise & {
-    exercise: Exercise;
-  })[];
+  workout_exercises?: WorkoutExercise[];
 }

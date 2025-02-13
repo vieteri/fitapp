@@ -1,0 +1,7 @@
+[test]
+preload = [".\\__tests__\\setup.ts"]
+coverage = true
+# Test file patterns
+pattern = "**/*.test.ts"
+# Environment variables for tests
+env = { NODE_ENV = "test" } 

@@ -32,11 +32,25 @@ export async function GET(
 
     if (error) throw error;
 
+    if (!routine) {
+      return NextResponse.json(
+        { error: 'Routine not found' },
+        { status: 404 }
+      );
+    }
+
+    if (routine.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json({ routine });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Routine route error:', error);
     return NextResponse.json(
-      { error: 'Error fetching routine' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -55,19 +69,38 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { error: routineError } = await supabase
+    const { data: routine, error: fetchError } = await supabase
+      .from('routines')
+      .select('user_id')
+      .eq('id', resolvedParams.id)
+      .single();
+
+    if (fetchError || !routine) {
+      return NextResponse.json(
+        { error: 'Routine not found' },
+        { status: 404 }
+      );
+    }
+
+    if (routine.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { error: deleteError } = await supabase
       .from('routines')
       .delete()
-      .eq('id', resolvedParams.id)
-      .eq('user_id', user.id);
+      .eq('id', resolvedParams.id);
 
-    if (routineError) throw routineError;
+    if (deleteError) throw deleteError;
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Routine route error:', error);
     return NextResponse.json(
-      { error: 'Error deleting routine' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -88,63 +121,55 @@ export async function PUT(
 
     const body = await request.json();
 
-    const { error: routineError } = await supabase
-      .from('routines')
-      .update({
-        name: body.name,
-        description: body.description
-      })
-      .eq('id', resolvedParams.id)
-      .eq('user_id', user.id);
-
-    if (routineError) throw routineError;
-
-    // Delete existing exercises
-    const { error: deleteError } = await supabase
-      .from('routine_exercises')
-      .delete()
-      .eq('routine_id', resolvedParams.id);
-
-    if (deleteError) throw deleteError;
-
-    // Insert new exercises
-    if (body.routine_exercises.length > 0) {
-      const { error: exercisesError } = await supabase
-        .from('routine_exercises')
-        .insert(
-          body.routine_exercises.map((re: any) => ({
-            routine_id: resolvedParams.id,
-            exercise_id: re.exercise_id,
-            sets: re.sets,
-            reps: re.reps,
-            weight: re.weight,
-            duration_minutes: re.duration_minutes
-          }))
-        );
-
-      if (exercisesError) throw exercisesError;
+    if (typeof body.name !== 'string' || typeof body.description !== 'string') {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      );
     }
 
-    // Fetch updated routine
     const { data: routine, error: fetchError } = await supabase
       .from('routines')
-      .select(`
-        *,
-        routine_exercises (
-          *,
-          exercise:exercises (*)
-        )
-      `)
+      .select('user_id')
       .eq('id', resolvedParams.id)
       .single();
 
-    if (fetchError) throw fetchError;
+    if (fetchError || !routine) {
+      return NextResponse.json(
+        { error: 'Routine not found' },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json({ routine });
+    if (routine.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { error: updateError } = await supabase
+      .from('routines')
+      .update({
+        name: body.name,
+        description: body.description,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', resolvedParams.id);
+
+    if (updateError) {
+      console.error('Error updating routine:', updateError);
+      return NextResponse.json(
+        { error: 'Error updating routine' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Routine route error:', error);
     return NextResponse.json(
-      { error: 'Error updating routine' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

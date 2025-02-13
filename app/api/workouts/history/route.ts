@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const offset = (page - 1) * limit;
 
     // Get total count
-    const { count: total } = await supabase
+    const { count } = await supabase
       .from('workouts')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
@@ -30,9 +30,6 @@ export async function GET(request: Request) {
       .from('workouts')
       .select(`
         *,
-        routine:routines (
-          name
-        ),
         workout_exercises (
           *,
           exercise:exercises (*)
@@ -45,16 +42,16 @@ export async function GET(request: Request) {
     if (error) {
       console.error('Error fetching workouts:', error);
       return NextResponse.json(
-        { error: 'Error fetching workouts' }, 
+        { error: 'Error fetching workouts' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       workouts,
-      total,
+      total: count || 0,
       page,
-      totalPages: Math.ceil((total || 0) / limit)
+      totalPages: Math.ceil((count || 0) / limit)
     });
   } catch (error) {
     console.error('Workout history error:', error);
