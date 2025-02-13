@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import type { Exercise } from '@/types/supabase-types';
@@ -26,8 +26,10 @@ function NewWorkoutForm() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExercises, setSelectedExercises] = useState<ExerciseWithSets[]>([]);
+  const [workoutName, setWorkoutName] = useState('');
 
   // Fetch available exercises
   useEffect(() => {
@@ -54,12 +56,19 @@ function NewWorkoutForm() {
     }
 
     setLoading(true);
+    setSaving(true);
     try {
       const response = await fetch('/api/workouts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'Quick Workout',
+          name: workoutName || `Workout ${new Date().toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })}`,
           exercises: selectedExercises.flatMap((ex, exerciseIndex) => 
             ex.sets.map((set, setIndex) => ({
               exercise_id: ex.exercise.id,
@@ -78,10 +87,12 @@ function NewWorkoutForm() {
         throw new Error(data.error || 'Failed to create workout');
       }
 
+      toast.success('Workout saved successfully!');
       router.push(`/workouts/${data.workout.id}`);
     } catch (error) {
       console.error('Error creating workout:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create workout');
+      setSaving(false);
     } finally {
       setLoading(false);
     }
@@ -152,10 +163,29 @@ function NewWorkoutForm() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <h1 className="text-2xl font-bold">Quick Workout</h1>
+        <h1 className="text-2xl font-bold">New Workout</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <Card className="p-6">
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Workout Details</h2>
+            <div>
+              <label htmlFor="workoutName" className="block text-sm font-medium text-muted-foreground mb-2">
+                Workout Name
+              </label>
+              <input
+                id="workoutName"
+                type="text"
+                className="w-full px-3 py-2 border rounded-md"
+                value={workoutName}
+                onChange={(e) => setWorkoutName(e.target.value)}
+                placeholder="Enter workout name (optional)"
+              />
+            </div>
+          </div>
+        </Card>
+
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Exercises</h2>
@@ -267,14 +297,25 @@ function NewWorkoutForm() {
             type="button"
             variant="outline"
             onClick={() => router.back()}
+            disabled={saving}
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={loading || selectedExercises.length === 0}
+            disabled={loading || selectedExercises.length === 0 || saving}
+            className="min-w-[120px]"
           >
-            {loading ? 'Starting...' : 'Start Workout'}
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : loading ? (
+              'Starting...'
+            ) : (
+              'Finish Workout'
+            )}
           </Button>
         </div>
       </form>

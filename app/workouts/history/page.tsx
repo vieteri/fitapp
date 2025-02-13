@@ -74,7 +74,7 @@ export default function WorkoutHistoryPage() {
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <h3 className="font-medium">
-                      {workout.routine?.name || "Custom Workout"}
+                      {workout.name}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(workout.created_at), { addSuffix: true })}

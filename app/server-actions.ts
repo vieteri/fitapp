@@ -99,41 +99,74 @@ export async function createWorkout(data: {
     sets?: number;
     weight?: number | null;
     duration_minutes?: number | null;
+    order_index?: number;
   }[];
 }) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Unauthorized' };
+  if (!user) return { error: 'You must be logged in to create a workout' };
 
   try {
-    // Validate input
-    if (!data.name) return { error: 'Workout name is required' };
-    if (!data.exercises?.length) return { error: 'At least one exercise is required' };
+    // Input validation
+    if (!data.name?.trim()) {
+      return { error: 'Workout name is required' };
+    }
 
-    // Create workout
+    if (!Array.isArray(data.exercises) || data.exercises.length === 0) {
+      return { error: 'At least one exercise is required' };
+    }
+
+    // Validate each exercise
+    for (let i = 0; i < data.exercises.length; i++) {
+      const exercise = data.exercises[i];
+      if (!exercise.exercise_id) {
+        return { error: `Exercise at position ${i + 1} is missing an ID` };
+      }
+      if (typeof exercise.reps !== 'number' || exercise.reps <= 0) {
+        return { error: `Exercise at position ${i + 1} has invalid reps` };
+      }
+      if (exercise.sets && (typeof exercise.sets !== 'number' || exercise.sets <= 0)) {
+        return { error: `Exercise at position ${i + 1} has invalid sets` };
+      }
+      if (exercise.weight && typeof exercise.weight !== 'number') {
+        return { error: `Exercise at position ${i + 1} has invalid weight` };
+      }
+      if (exercise.duration_minutes && typeof exercise.duration_minutes !== 'number') {
+        return { error: `Exercise at position ${i + 1} has invalid duration` };
+      }
+    }
+
+    // Start a Supabase transaction
     const { data: workout, error: workoutError } = await supabase
       .from('workouts')
       .insert([{ 
-        name: data.name, 
-        description: data.description || null,
-        user_id: user.id 
+        name: data.name.trim(), 
+        description: data.description?.trim() || null,
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }])
       .select()
       .single();
 
     if (workoutError) {
       console.error('Workout creation error:', workoutError);
-      return { error: workoutError.message };
+      return { error: 'Failed to create workout. Please try again.' };
     }
 
-    if (!workout) return { error: 'Failed to create workout' };
+    if (!workout) {
+      return { error: 'Failed to create workout - no workout returned' };
+    }
 
     // Create workout exercises with set numbers
-    const workoutExercises = data.exercises.map((exercise, index) => ({
-      ...exercise,
+    const workoutExercises = data.exercises.map((exercise) => ({
       workout_id: workout.id,
+      exercise_id: exercise.exercise_id,
       sets: exercise.sets || 1,
+      reps: exercise.reps,
+      weight: exercise.weight || null,
+      duration_minutes: exercise.duration_minutes || null
     }));
 
     const { error: exercisesError } = await supabase
@@ -147,10 +180,16 @@ export async function createWorkout(data: {
       return { error: exercisesError.message };
     }
 
-    return { success: true, workout };
+    return { 
+      success: true, 
+      workout: {
+        ...workout,
+        workout_exercises: workoutExercises
+      }
+    };
   } catch (error) {
-    console.error('Server error:', error);
-    return { error: 'Server error creating workout' };
+    console.error('Server error creating workout:', error);
+    return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
 

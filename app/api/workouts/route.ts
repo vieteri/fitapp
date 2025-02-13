@@ -16,18 +16,20 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     
-    if (!body.name) {
-      return NextResponse.json(
-        { error: 'Name is required' },
-        { status: 400 }
-      );
-    }
+    // Generate a default name if not provided
+    const workoutName = body.name || `Workout ${new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })}`;
 
     // Create workout
     const { data: workout, error: workoutError } = await supabase
       .from('workouts')
       .insert({
-        name: body.name,
+        name: workoutName,
         description: body.description,
         user_id: user.id,
       })
@@ -53,15 +55,13 @@ export async function POST(request: Request) {
             sets: number;
             weight?: number;
             duration_minutes?: number;
-            order_index: number;
           }) => ({
             workout_id: workout.id,
             exercise_id: ex.exercise_id,
             sets: ex.sets,
             reps: ex.reps,
             weight: ex.weight || null,
-            duration_minutes: ex.duration_minutes || null,
-            order_index: ex.order_index
+            duration_minutes: ex.duration_minutes || null
           }))
         );
 
