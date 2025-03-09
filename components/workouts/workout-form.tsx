@@ -1,129 +1,115 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Save, Dumbbell } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Exercise, Routine, RoutineExercise } from '@/types/supabase-types';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Plus, Trash2, Save } from 'lucide-react';
+import type { WorkoutWithExercises, Exercise } from '@/types/supabase-types';
 
-interface RoutineFormProps {
-  initialData?: Routine;
-  onSuccess: (routine: Routine) => void;
+interface WorkoutFormProps {
+  initialData: WorkoutWithExercises;
+  onSuccess: (workout: WorkoutWithExercises) => void;
 }
 
-export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
-  const [name, setName] = useState(initialData?.name || '');
-  const [description, setDescription] = useState(initialData?.description || '');
+export function WorkoutForm({ initialData, onSuccess }: WorkoutFormProps) {
+  const [name, setName] = useState(initialData.name);
+  const [description, setDescription] = useState(initialData.description || '');
   const [exercises, setExercises] = useState<{
     id?: string;
     exercise_id: string;
     sets: number;
     reps: number;
     weight: number | null;
-    duration_minutes: number | null;
-    order_index?: number;
     exercise?: Exercise | null;
-  }[]>(initialData?.routine_exercises?.map(re => ({
-    id: re.id,
-    exercise_id: re.exercise_id,
-    sets: re.sets,
-    reps: re.reps,
-    weight: re.weight,
-    duration_minutes: re.duration_minutes,
-    order_index: re.order_index,
-    exercise: re.exercise
+  }[]>(initialData.workout_exercises?.map(ex => ({
+    id: ex.id,
+    exercise_id: ex.exercise_id || '',
+    sets: ex.sets,
+    reps: ex.reps,
+    weight: ex.weight,
+    exercise: ex.exercise
   })) || []);
+  const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loadingExercises, setLoadingExercises] = useState(true);
 
+  // Fetch available exercises
   useEffect(() => {
-    const fetchExercises = async () => {
+    async function fetchExercises() {
       try {
         const response = await fetch('/api/exercises');
-        if (!response.ok) throw new Error('Failed to fetch exercises');
+        if (!response.ok) {
+          throw new Error('Failed to fetch exercises');
+        }
         const data = await response.json();
         setAvailableExercises(data.exercises);
-      } catch (error) {
-        console.error('Error fetching exercises:', error);
+      } catch (err) {
+        console.error('Error fetching exercises:', err);
       } finally {
         setLoadingExercises(false);
       }
-    };
+    }
 
     fetchExercises();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || exercises.length === 0) {
-      setError("Please add a name and at least one exercise");
-      return;
-    }
-    
-    // Validate that all exercises have an exercise_id
-    if (exercises.some(ex => !ex.exercise_id)) {
-      setError("Please select an exercise for all items");
-      return;
-    }
-    
     setLoading(true);
     setError(null);
 
     try {
-      const url = initialData 
-        ? `/api/routines/${initialData.id}`
-        : '/api/routines';
-      
-      const method = initialData ? 'PATCH' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`/api/workouts/${initialData.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           name,
           description: description || null,
-          exercises: exercises.map((ex, index) => ({
-            id: ex.id,
+          exercises: exercises.map(ex => ({
+            id: ex.id, // Include ID for existing exercises
             exercise_id: ex.exercise_id,
             sets: ex.sets,
             reps: ex.reps,
-            weight: ex.weight,
-            duration_minutes: ex.duration_minutes,
-            order_index: index
+            weight: ex.weight
           }))
-        })
+        }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to save routine');
+        throw new Error('Failed to update workout');
       }
-      
-      const data = await response.json();
-      onSuccess(data.routine);
-    } catch (error) {
-      console.error('Error saving routine:', error);
-      setError(error instanceof Error ? error.message : 'Failed to save routine');
+
+      const { workout } = await response.json();
+      onSuccess(workout);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
   const addExercise = () => {
+    // Add a new empty exercise
     setExercises(prev => [
       ...prev, 
-      {
+      { 
         exercise_id: '',
         sets: 3,
         reps: 10,
-        weight: null,
-        duration_minutes: null
+        weight: null
       }
     ]);
   };
@@ -148,16 +134,16 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Card className="p-6 space-y-6">
+    <Card className="p-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
           <div className="p-3 bg-destructive/10 text-destructive rounded-md">
             {error}
           </div>
         )}
-      
+
         <div className="space-y-2">
-          <Label htmlFor="name">Routine Name</Label>
+          <Label htmlFor="name">Workout Name</Label>
           <Input
             id="name"
             value={name}
@@ -167,30 +153,26 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">Description (optional)</Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional description..."
+            rows={3}
           />
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Dumbbell className="h-5 w-5" />
-              <h3 className="text-lg font-medium">Exercises</h3>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
+            <h3 className="text-lg font-medium">Exercises</h3>
+            <Button 
+              type="button" 
+              variant="outline" 
               size="sm"
               onClick={addExercise}
               disabled={loadingExercises}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Exercise
+              <Plus className="h-4 w-4 mr-2" /> Add Exercise
             </Button>
           </div>
 
@@ -202,18 +184,16 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
           ) : (
             <div className="space-y-4">
               {exercises.length === 0 ? (
-                <div className="text-center p-6 border rounded-md bg-muted/10">
-                  <p className="text-muted-foreground">No exercises added yet. Use the button above to add exercises to your routine.</p>
+                <div className="text-center p-4 border rounded-md bg-muted/10">
+                  <p className="text-muted-foreground">No exercises added. Add your first exercise!</p>
                 </div>
               ) : (
                 exercises.map((exercise, index) => (
                   <Card key={index} className="p-4">
                     <div className="space-y-4">
-                      <div className="flex justify-between items-start">
+                      <div className="flex items-start justify-between">
                         <div className="w-full">
-                          <Label htmlFor={`exercise-${index}`} className="mb-2 block">
-                            Exercise {index + 1}
-                          </Label>
+                          <Label htmlFor={`exercise-${index}`}>Exercise</Label>
                           <Select
                             value={exercise.exercise_id}
                             onValueChange={(value) => updateExercise(index, 'exercise_id', value)}
@@ -224,7 +204,7 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
                             <SelectContent>
                               {availableExercises.map((ex) => (
                                 <SelectItem key={ex.id} value={ex.id}>
-                                  {ex.name} ({ex.muscle_group})
+                                  {ex.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -241,7 +221,7 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
                         </Button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor={`sets-${index}`}>Sets</Label>
                           <Input
@@ -274,17 +254,6 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
                             placeholder="Optional"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`duration-${index}`}>Duration (min)</Label>
-                          <Input
-                            id={`duration-${index}`}
-                            type="number"
-                            min="0"
-                            value={exercise.duration_minutes || ''}
-                            onChange={(e) => updateExercise(index, 'duration_minutes', e.target.value ? parseInt(e.target.value) : null)}
-                            placeholder="Optional"
-                          />
-                        </div>
                       </div>
                     </div>
                   </Card>
@@ -294,19 +263,20 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
           )}
         </div>
 
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={loading || loadingExercises}
-        >
-          {loading ? 'Saving...' : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              {initialData ? 'Update' : 'Create'} Routine
-            </>
-          )}
-        </Button>
-      </Card>
-    </form>
+        <div className="flex justify-end gap-2">
+          <Button
+            type="submit"
+            disabled={loading || loadingExercises}
+          >
+            {loading ? 'Saving...' : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Workout
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 } 

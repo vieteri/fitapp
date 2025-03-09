@@ -67,8 +67,7 @@ export default function RoutinePage({ params }: { params: Promise<{ id: string }
   }, [id]);
 
   const handleEdit = () => {
-    // TODO: Implement edit functionality
-    console.log('Edit clicked');
+    router.push(`/routines/${id}/edit`);
   };
 
   const handleDelete = async () => {

@@ -4,47 +4,54 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { RoutineForm } from "@/components/routines/routine-form";
-import { RoutineSkeleton } from "@/components/routines/routine-skeleton";
-import type { Routine } from '@/types/supabase-types';
+import type { WorkoutWithExercises } from '@/types/supabase-types';
+import { WorkoutForm } from "@/components/workouts/workout-form";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default function EditRoutinePage({ params }: Props) {
+export default function EditWorkoutPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const [routine, setRoutine] = useState<Routine | null>(null);
+  const [workout, setWorkout] = useState<WorkoutWithExercises | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRoutine = async () => {
+    const fetchWorkout = async () => {
       try {
-        const response = await fetch(`/api/routines/${id}`);
+        const response = await fetch(`/api/workouts/${id}`);
         if (!response.ok) {
           if (response.status === 404) {
-            router.push('/routines');
+            router.push('/workouts');
             return;
           }
-          throw new Error('Failed to fetch routine');
+          throw new Error('Failed to fetch workout');
         }
         const data = await response.json();
-        setRoutine(data.routine);
+        setWorkout(data.workout);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
-        console.error('Error fetching routine:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRoutine();
+    fetchWorkout();
   }, [id, router]);
 
   if (loading) {
-    return <RoutineSkeleton />;
+    return (
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="h-8 w-64 bg-muted rounded-md mb-4 animate-pulse" />
+        <div className="space-y-4">
+          <div className="h-10 bg-muted rounded-md animate-pulse" />
+          <div className="h-20 bg-muted rounded-md animate-pulse" />
+          <div className="h-40 bg-muted rounded-md animate-pulse" />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -55,7 +62,7 @@ export default function EditRoutinePage({ params }: Props) {
     );
   }
 
-  if (!routine) return null;
+  if (!workout) return null;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -64,13 +71,13 @@ export default function EditRoutinePage({ params }: Props) {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <h1 className="text-2xl font-bold">Edit Routine</h1>
+        <h1 className="text-2xl font-bold">Edit Workout</h1>
       </div>
 
-      <RoutineForm 
-        initialData={routine}
-        onSuccess={(updatedRoutine) => {
-          router.push(`/routines/${updatedRoutine.id}`);
+      <WorkoutForm 
+        initialData={workout}
+        onSuccess={(updatedWorkout: WorkoutWithExercises) => {
+          router.push(`/workouts/${updatedWorkout.id}`);
         }}
       />
     </div>

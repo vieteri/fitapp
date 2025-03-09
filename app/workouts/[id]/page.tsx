@@ -4,7 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { WorkoutWithExercises } from '@/types/supabase-types';
 
@@ -41,17 +41,57 @@ export default function WorkoutPage({ params }: WorkoutPageProps) {
     fetchWorkout();
   }, [id]);
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this workout?')) return;
+    
+    try {
+      const response = await fetch(`/api/workouts/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete workout');
+      
+      router.push('/workouts');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete workout');
+    }
+  };
+
+  const handleEdit = () => {
+    router.push(`/workouts/${id}/edit`);
+  };
+
   if (loading) return <WorkoutSkeleton />;
   if (error) return <div className="text-destructive">{error}</div>;
   if (!workout) return notFound();
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <div className="mb-6">
+      <div className="mb-6 flex justify-between items-center">
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handleEdit}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+          
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-6">
