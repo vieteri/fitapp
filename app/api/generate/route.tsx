@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
 
     // Enhance the prompt to request HTML formatting
-    const enhancedPrompt = `${prompt}\n\nPlease format your response as clean, readable HTML.`;
+    const enhancedPrompt = `${prompt}\n\nPlease format your response as clean, readable HTML. It is shown to the user, so make it look nice.`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const result = await model.generateContent(enhancedPrompt);
