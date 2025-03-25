@@ -1,5 +1,5 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
+import { validateEmail, validateUrl } from '@/utils/validation';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -7,16 +7,29 @@ export async function POST(request: Request) {
     const { email, callbackUrl } = await request.json();
     const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
 
-    if (!email) {
+    // Validate email
+    const emailResult = validateEmail(email);
+    if (!emailResult.success) {
       return NextResponse.json(
-        { error: 'Email is required' },
+        { error: emailResult.error.errors[0].message },
         { status: 400 }
       );
     }
 
-    const supabase = createRouteHandlerClient({ cookies });
+    // Validate callback URL if provided
+    if (callbackUrl) {
+      const urlResult = validateUrl(callbackUrl);
+      if (!urlResult.success) {
+        return NextResponse.json(
+          { error: urlResult.error.errors[0].message },
+          { status: 400 }
+        );
+      }
+    }
+
+    const supabase = await createClient();
     
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(emailResult.data, {
       redirectTo: `${origin}/auth/callback?redirect_to=/protected/reset-password`,
     });
 
@@ -29,7 +42,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: 'Check your email for a link to reset your password.',
-      redirectTo: callbackUrl
+      ...(callbackUrl && { redirectTo: callbackUrl })
     }, { status: 200 });
 
   } catch (error) {

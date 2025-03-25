@@ -1,13 +1,25 @@
 import { createClient } from '@/utils/supabase/server';
+import { validateEmail, validatePassword } from '@/utils/validation';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
 
-    if (!email || !password) {
+    // Validate email
+    const emailResult = validateEmail(email);
+    if (!emailResult.success) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: emailResult.error.errors[0].message },
+        { status: 400 }
+      );
+    }
+
+    // Validate password
+    const passwordResult = validatePassword(password);
+    if (!passwordResult.success) {
+      return NextResponse.json(
+        { error: passwordResult.error.errors[0].message },
         { status: 400 }
       );
     }
@@ -15,8 +27,8 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: emailResult.data,
+      password: passwordResult.data,
     });
 
     if (error) {
@@ -26,10 +38,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Return the access token and user data
+    // Return only necessary user data and tokens
     return NextResponse.json({
       message: 'Successfully signed in',
-      user: data.user,
+      user: {
+        id: data.user?.id,
+        email: data.user?.email,
+        created_at: data.user?.created_at
+      },
       access_token: data.session?.access_token,
       refresh_token: data.session?.refresh_token
     });
