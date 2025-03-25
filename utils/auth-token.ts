@@ -1,57 +1,50 @@
-import { cookies } from 'next/headers';
-import { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
+import { createClient } from '@/utils/supabase/server';
+import { headers } from 'next/headers';
 
-export const cookieOptions: Partial<ResponseCookie> = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: 7 * 24 * 60 * 60, // 7 days
-  path: '/'
-};
+export async function getTokenFromHeader(): Promise<string | null> {
+  const headersList = await headers();
+  const authHeader = headersList.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null;
+  }
+  return authHeader.split(' ')[1];
+}
 
-export const setAuthCookies = (accessToken: string, refreshToken: string) => {
-  const cookieStore = cookies();
+export async function verifyToken(token: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error) {
+      return { user: null, error };
+    }
+    
+    return { user, error: null };
+  } catch (error) {
+    return { user: null, error };
+  }
+}
+
+export function extractTokenData(token: string) {
+  try {
+    // JWT tokens are base64 encoded in three parts: header.payload.signature
+    const [, payload] = token.split('.');
+    const decodedPayload = JSON.parse(Buffer.from(payload, 'base64').toString());
+    return {
+      exp: decodedPayload.exp,
+      sub: decodedPayload.sub,
+      email: decodedPayload.email,
+      role: decodedPayload.role
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+export function isTokenExpired(token: string): boolean {
+  const data = extractTokenData(token);
+  if (!data?.exp) return true;
   
-  // Set access token
-  cookieStore.set({
-    name: 'access_token',
-    value: accessToken,
-    ...cookieOptions
-  });
-  
-  // Set refresh token with restricted path
-  cookieStore.set({
-    name: 'refresh_token',
-    value: refreshToken,
-    ...cookieOptions,
-    path: '/api/auth/refresh' // Restrict refresh token to refresh endpoint
-  });
-};
-
-export const clearAuthCookies = () => {
-  const cookieStore = cookies();
-  
-  // Clear both tokens by setting them to expire immediately
-  cookieStore.set({
-    name: 'access_token',
-    value: '',
-    ...cookieOptions,
-    maxAge: 0
-  });
-  cookieStore.set({
-    name: 'refresh_token',
-    value: '',
-    ...cookieOptions,
-    maxAge: 0
-  });
-};
-
-export const getAuthToken = () => {
-  const cookieStore = cookies();
-  return cookieStore.get('access_token')?.value;
-};
-
-export const getRefreshToken = () => {
-  const cookieStore = cookies();
-  return cookieStore.get('refresh_token')?.value;
-}; 
+  // Check if the token has expired (exp is in seconds)
+  return Date.now() >= data.exp * 1000;
+} 
