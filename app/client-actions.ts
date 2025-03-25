@@ -7,25 +7,60 @@ import { User } from "@supabase/auth-js";
 export const signIn = async (formData: FormData, setUser: (user: User | null) => void) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const supabase = createClient();
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+  const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
   });
 
-  if (error) {
-    throw new Error(error.message);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error);
   }
 
-  if (data.session) {
-    const { user } = data.session;
-    setUser(user);
-  }
+  // Store tokens in localStorage
+  localStorage.setItem('access_token', data.access_token);
+  localStorage.setItem('refresh_token', data.refresh_token);
+
+  setUser(data.user);
 };
 
 export const signOut = async () => {
-  const supabase = createClient();
-  const { error } = await supabase.auth.signOut();
-  return { error: error?.message };
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  window.location.href = '/sign-in';
+};
+
+export const getAuthToken = () => {
+  return localStorage.getItem('access_token');
+};
+
+// Helper function to add auth header to requests
+export const authFetch = async (url: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`,
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401) {
+    // Token expired or invalid
+    signOut();
+    throw new Error('Authentication token expired');
+  }
+
+  return response;
 };

@@ -1,18 +1,18 @@
-import { createClient } from '@/utils/supabase/server'
-import { NextResponse } from 'next/server'
+import { verifyJWT } from '@/utils/auth';
+import { NextResponse } from 'next/server';
 
 export async function PUT(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    const result = await verifyJWT(request.headers.get('authorization'));
+
+    if ('error' in result) {
       return NextResponse.json(
-        { error: 'Unauthorized' }, 
-        { status: 401 }
+        { error: result.error },
+        { status: result.status }
       );
     }
 
+    const { user, supabase } = result;
     const body = await request.json();
     
     if (typeof body.full_name !== 'string') {
@@ -48,18 +48,18 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    const result = await verifyJWT(request.headers.get('authorization'));
+
+    if ('error' in result) {
       return NextResponse.json(
-        { error: 'Unauthorized' }, 
-        { status: 401 }
+        { error: result.error },
+        { status: result.status }
       );
     }
 
+    const { user, supabase } = result;
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
