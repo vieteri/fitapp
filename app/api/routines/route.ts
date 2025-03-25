@@ -1,17 +1,19 @@
-import { createClient } from '@/utils/supabase/server'
-import { NextResponse } from 'next/server'
+import { verifyJWT } from '@/utils/auth';
+import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    const result = await verifyJWT(request.headers.get('authorization'));
+
+    if ('error' in result) {
       return NextResponse.json(
-        { error: 'Unauthorized' }, 
-        { status: 401 }
+        { error: result.error },
+        { status: result.status }
       );
     }
+
+    const { user, supabase } = result;
+    console.log('Authenticated user ID:', user.id);
 
     // Get limit from URL params
     const { searchParams } = new URL(request.url);
@@ -39,7 +41,7 @@ export async function GET(request: Request) {
     if (error) {
       console.error('Error fetching routines:', error);
       return NextResponse.json(
-        { error: 'Error fetching routines' },
+        { error: 'Error fetching routines', details: error.message },
         { status: 500 }
       );
     }
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Routines route error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -56,16 +58,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    const result = await verifyJWT(request.headers.get('authorization'));
+
+    if ('error' in result) {
       return NextResponse.json(
-        { error: 'Unauthorized' }, 
-        { status: 401 }
+        { error: result.error },
+        { status: result.status }
       );
     }
 
+    const { user, supabase } = result;
     const body = await request.json();
     
     if (!body.name || !body.exercises?.length) {
