@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     const { user, supabase } = result;
     const body = await request.json();
     
-    if (!body.name || !body.exercises?.length) {
+    if (!body.name || !body.routine_exercises?.length) {
       return NextResponse.json(
         { error: 'Name and at least one exercise are required' },
         { status: 400 }
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     const { error: exercisesError } = await supabase
       .from('routine_exercises')
       .insert(
-        body.exercises.map((ex: {
+        body.routine_exercises.map((ex: {
           exercise_id: string;
           reps: number;
           sets: number;

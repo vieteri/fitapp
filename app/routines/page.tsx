@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { RoutineList } from "@/components/routines/routine-list";
 import { useAuth } from "@/context/auth-context";
+import { authFetch } from "@/app/client-actions";
+import { toast } from "sonner";
 import type { Routine, RoutineWithExercises } from '@/types/supabase-types';
 
 export default function RoutinesPage() {
@@ -22,8 +24,10 @@ export default function RoutinesPage() {
 
     const fetchRoutines = async () => {
       try {
-        const response = await fetch('/api/routines');
-        if (!response.ok) throw new Error('Failed to fetch routines');
+        const response = await authFetch('/api/routines');
+        if (!response.ok) {
+          throw new Error('Failed to fetch routines');
+        }
         const data = await response.json();
         setRoutines(data.routines.map((r: Routine) => ({
           ...r,
@@ -31,6 +35,11 @@ export default function RoutinesPage() {
         })));
       } catch (error) {
         console.error('Error fetching routines:', error);
+        if (error instanceof Error && error.message === 'Authentication token expired') {
+          router.push('/sign-in');
+        } else {
+          toast.error('Failed to load routines');
+        }
       } finally {
         setLoading(false);
       }
@@ -43,14 +52,22 @@ export default function RoutinesPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/routines/${id}`, {
+      const response = await authFetch(`/api/routines/${id}`, {
         method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error('Failed to delete routine');
+      if (!response.ok) {
+        throw new Error('Failed to delete routine');
+      }
       setRoutines(routines.filter(r => r.id !== id));
+      toast.success('Routine deleted successfully');
     } catch (error) {
       console.error('Error deleting routine:', error);
+      if (error instanceof Error && error.message === 'Authentication token expired') {
+        router.push('/sign-in');
+      } else {
+        toast.error('Failed to delete routine');
+      }
     }
   };
 
