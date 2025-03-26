@@ -1,26 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from './utils/supabase/server'; // Adjust the path as necessary
 
 export async function middleware(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
-
   const { pathname } = req.nextUrl;
+  
+  // Public routes that don't require authentication
+  const publicRoutes = ['/sign-in', '/sign-up', '/forgot-password'];
+  
+  // Protected routes that require authentication
+  const protectedRoutes = ['/profile', '/workouts', '/routines', '/protected'];
+  
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  const isPublicRoute = publicRoutes.some(route => pathname === route);
 
-  // If the user is not authenticated and trying to access protected routes, redirect them
-  if (!session && (pathname.startsWith('/profile') || pathname.startsWith('/workouts'))) {
-    return NextResponse.redirect(new URL('/sign-in', req.url));
+  // Allow access to public routes
+  if (isPublicRoute) {
+    return NextResponse.next();
   }
 
-  // If the user is authenticated and trying to access sign-in or sign-up, redirect them
-  if (session && (pathname === '/sign-in' || pathname === '/sign-up')) {
-    return NextResponse.redirect(new URL('/', req.url));
+  // For protected routes, let the client-side handle authentication
+  if (isProtectedRoute) {
+    // The actual authentication check will be done on the client side
+    // using the AuthProvider context
+    return NextResponse.next();
   }
 
-  // Continue to the requested page
+  // For all other routes, proceed normally
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/profile', '/workouts', '/sign-in', '/sign-up', '/protected/:path*'], // Adjust paths as necessary
+  matcher: [
+    '/profile/:path*',
+    '/workouts/:path*',
+    '/routines/:path*',
+    '/protected/:path*',
+    '/sign-in',
+    '/sign-up',
+    '/forgot-password'
+  ]
 };

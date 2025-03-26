@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { authFetch } from "@/app/client-actions";
+import { useRouter } from "next/navigation";
 
 function RoutineCardSkeleton() {
   return (
@@ -20,11 +22,12 @@ function RoutineCardSkeleton() {
 function RoutinesListContent() {
   const [routines, setRoutines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchRoutines() {
       try {
-        const response = await fetch('/api/routines');
+        const response = await authFetch('/api/routines');
         const data = await response.json();
 
         if (!response.ok) {
@@ -34,7 +37,11 @@ function RoutinesListContent() {
         setRoutines(data.routines || []);
       } catch (error) {
         console.error('Error fetching routines:', error);
-        toast.error('Failed to load routines');
+        if (error instanceof Error && error.message === 'Authentication token expired') {
+          router.push('/sign-in');
+        } else {
+          toast.error('Failed to load routines');
+        }
         setRoutines([]);
       } finally {
         setLoading(false);
@@ -42,7 +49,7 @@ function RoutinesListContent() {
     }
 
     fetchRoutines();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
