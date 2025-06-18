@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DumbbellIcon, Plus } from "lucide-react";
+import { TableRenderer } from "@/components/ai/table-renderer";
 import type { RoutineWithExercises } from "@/types/supabase-types";
 
 interface RoutineListProps {
@@ -50,9 +51,9 @@ export function RoutineList({ routines, isLoading, onDelete }: RoutineListProps)
               <Card className="p-4 hover:bg-muted/50 transition-colors">
                 <h3 className="text-xl font-semibold">{routine.name}</h3>
                 {routine.description && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {routine.description}
-                  </p>
+                  <div className="mt-1 text-sm text-muted-foreground prose prose-sm max-w-none dark:prose-invert">
+                    <TableRenderer content={routine.description} />
+                  </div>
                 )}
                 <div className="mt-2 text-sm text-muted-foreground">
                   {routine.routine_exercises?.length || 0} exercises

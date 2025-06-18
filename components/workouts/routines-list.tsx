@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from 'next/link';
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableRenderer } from "@/components/ai/table-renderer";
 import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { authFetch } from "@/app/client-actions";
@@ -80,9 +81,9 @@ function RoutinesListContent() {
           <Card className="p-6 h-full hover:bg-muted/50 transition-colors">
             <h3 className="font-medium mb-2">{routine.name}</h3>
             {routine.description && (
-              <p className="text-sm text-muted-foreground mb-2">
-                {routine.description}
-              </p>
+              <div className="text-sm text-muted-foreground mb-2 prose prose-sm max-w-none dark:prose-invert">
+                <TableRenderer content={routine.description} />
+              </div>
             )}
             <p className="text-sm text-muted-foreground">
               {routine.routine_exercises?.length ?? 0} exercises

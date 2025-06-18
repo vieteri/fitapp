@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { TableRenderer } from "@/components/ai/table-renderer";
 import { authFetch } from "@/app/client-actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -78,9 +79,9 @@ export function ProfileRoutines() {
                 <div>
                   <h3 className="font-medium">{routine.name}</h3>
                   {routine.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {routine.description}
-                    </p>
+                    <div className="text-sm text-muted-foreground mt-1 prose prose-sm max-w-none dark:prose-invert">
+                      <TableRenderer content={routine.description} />
+                    </div>
                   )}
                 </div>
                 <span className="text-sm text-muted-foreground">
