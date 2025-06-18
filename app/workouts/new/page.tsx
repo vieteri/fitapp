@@ -30,22 +30,65 @@ function NewWorkoutForm() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExercises, setSelectedExercises] = useState<ExerciseWithSets[]>([]);
   const [workoutName, setWorkoutName] = useState('');
+  const [loadingRoutine, setLoadingRoutine] = useState(false);
 
-  // Fetch available exercises
+  // Check for routine parameters and prefill
   useEffect(() => {
-    const fetchExercises = async () => {
+    const fetchDataAndPrefill = async () => {
       try {
-        const response = await fetch('/api/exercises');
-        if (!response.ok) throw new Error('Failed to fetch exercises');
-        const data = await response.json();
-        setExercises(data.exercises);
+        // Fetch available exercises first
+        const exercisesResponse = await fetch('/api/exercises');
+        if (!exercisesResponse.ok) throw new Error('Failed to fetch exercises');
+        const exercisesData = await exercisesResponse.json();
+        setExercises(exercisesData.exercises);
+
+        // Check if we're copying from a routine
+        const searchParams = new URLSearchParams(window.location.search);
+        const routineId = searchParams.get('from_routine');
+        const prefillName = searchParams.get('name');
+
+        if (prefillName) {
+          setWorkoutName(prefillName);
+        }
+
+        if (routineId) {
+          setLoadingRoutine(true);
+          try {
+            const routineResponse = await fetch(`/api/routines/${routineId}`);
+            if (!routineResponse.ok) throw new Error('Failed to fetch routine');
+            const routineData = await routineResponse.json();
+            
+            // Convert routine exercises to workout format
+            const prefillExercises: ExerciseWithSets[] = routineData.routine.routine_exercises.map((re: any) => {
+              const exercise = exercisesData.exercises.find((ex: Exercise) => ex.id === re.exercise_id);
+              if (!exercise) return null;
+              
+              // Create sets based on routine data
+              const sets = Array.from({ length: re.sets }, () => ({
+                reps: re.reps,
+                weight: re.weight,
+                duration_minutes: re.duration_minutes
+              }));
+
+              return { exercise, sets };
+            }).filter(Boolean);
+
+            setSelectedExercises(prefillExercises);
+            toast.success(`Loaded ${prefillExercises.length} exercises from routine!`);
+          } catch (error) {
+            console.error('Error loading routine:', error);
+            toast.error('Failed to load routine data');
+          } finally {
+            setLoadingRoutine(false);
+          }
+        }
       } catch (error) {
         console.error('Error fetching exercises:', error);
         toast.error('Failed to load exercises');
       }
     };
 
-    fetchExercises();
+    fetchDataAndPrefill();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,6 +213,12 @@ function NewWorkoutForm() {
         <Card className="p-6">
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Workout Details</h2>
+            {loadingRoutine && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-blue-800 text-sm">
+                <Loader2 className="h-4 w-4 inline mr-2 animate-spin" />
+                Loading routine exercises...
+              </div>
+            )}
             <div>
               <label htmlFor="workoutName" className="block text-sm font-medium text-muted-foreground mb-2">
                 Workout Name

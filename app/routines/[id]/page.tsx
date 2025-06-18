@@ -6,6 +6,7 @@ import { RoutineHeader } from '@/components/routines/routine-header';
 import { RoutineDetails } from '@/components/routines/routine-details';
 import { ExerciseList } from '@/components/routines/exercise-list';
 import { RoutineSkeleton } from '@/components/routines/routine-skeleton';
+import { toast } from 'sonner';
 import type { RoutineWithExercises } from '@/types/supabase-types';
 
 export default function RoutinePage({ params }: { params: Promise<{ id: string }> }) {
@@ -57,6 +58,22 @@ export default function RoutinePage({ params }: { params: Promise<{ id: string }
     }
   };
 
+  const handleCopyToWorkout = () => {
+    if (!routine || !routine.routine_exercises?.length) {
+      toast.error('No exercises found in this routine');
+      return;
+    }
+
+    // Create URL parameters to prefill the workout form
+    const searchParams = new URLSearchParams();
+    searchParams.set('from_routine', routine.id);
+    searchParams.set('name', `${routine.name} - ${new Date().toLocaleDateString()}`);
+    
+    // Navigate to new workout page with prefilled data
+    router.push(`/workouts/new?${searchParams.toString()}`);
+    toast.success('Redirecting to workout setup...');
+  };
+
   if (loading) return <RoutineSkeleton />;
   if (error) return <div className="text-destructive">{error}</div>;
   if (!routine) return notFound();
@@ -69,6 +86,7 @@ export default function RoutinePage({ params }: { params: Promise<{ id: string }
           description={routine.description || ''}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onCopyToWorkout={handleCopyToWorkout}
         />
 
         <RoutineDetails 

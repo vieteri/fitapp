@@ -54,7 +54,11 @@ export function ProfileWorkouts({ onLoadingChange }: ProfileWorkoutsProps) {
       </div>
       <div className="space-y-4">
         {workouts.map((workout) => (
-          <div key={workout.id} className="flex items-center gap-3">
+          <Link 
+            key={workout.id} 
+            href={`/workouts/${workout.id}`}
+            className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+          >
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
               <DumbbellIcon className="h-4 w-4 text-primary" />
             </div>
@@ -64,7 +68,7 @@ export function ProfileWorkouts({ onLoadingChange }: ProfileWorkoutsProps) {
                 {workout.workout_exercises.length} exercises
               </p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </Card>
