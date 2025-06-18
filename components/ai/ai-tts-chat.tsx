@@ -161,12 +161,27 @@ export default function AITTSChat() {
       });
 
       console.log("Response status:", res.status);
-      const data: TTSResponse = await res.json();
-      console.log("Response data:", data);
       
       if (!res.ok) {
-        throw new Error(data.message || `HTTP ${res.status}: Failed to generate response`);
+        // Handle non-JSON error responses
+        let errorMessage = `HTTP ${res.status}: Failed to generate response`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (parseError) {
+          // If JSON parsing fails, try to get text response
+          try {
+            const errorText = await res.text();
+            errorMessage = errorText || errorMessage;
+          } catch (textError) {
+            console.error("Could not parse error response:", textError);
+          }
+        }
+        throw new Error(errorMessage);
       }
+      
+      const data: TTSResponse = await res.json();
+      console.log("Response data:", data);
 
       setResponse(data.text || "No response generated");
       

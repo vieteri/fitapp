@@ -80,7 +80,18 @@ export async function POST(req: Request) {
   try {
     const { prompt, generateRoutines = false } = await req.json();
     if (!prompt) {
-      return new Response(JSON.stringify({ error: "Prompt is required" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Prompt is required" }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY environment variable is not set");
+      return new Response(JSON.stringify({ error: "API configuration error" }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // Check if user is authenticated to get profile context
@@ -117,7 +128,10 @@ Use this information to personalize your fitness advice. Consider their age, BMI
     // If this is a routine generation request, handle it differently
     if (generateRoutines) {
       if ('error' in authResult) {
-        return new Response(JSON.stringify({ error: authResult.error }), { status: authResult.status });
+        return new Response(JSON.stringify({ error: authResult.error }), { 
+          status: authResult.status,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
       const { user, supabase } = authResult;
@@ -129,7 +143,10 @@ Use this information to personalize your fitness advice. Consider their age, BMI
         .order('name');
 
       if (exercisesError) {
-        return new Response(JSON.stringify({ error: "Error fetching exercises" }), { status: 500 });
+        return new Response(JSON.stringify({ error: "Error fetching exercises" }), { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
       // Create enhanced prompt with available exercises
@@ -160,7 +177,10 @@ Please create 3 different workout routines using these exercises. Make sure to u
             routines: routineData.routines,
             explanation: routineData.explanation,
             isRoutineGeneration: true
-          }), { status: 200 });
+          }), { 
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
       } catch (parseError) {
         // If JSON parsing fails, return as regular text
@@ -170,7 +190,10 @@ Please create 3 different workout routines using these exercises. Make sure to u
       return new Response(JSON.stringify({ 
         response: text,
         isRoutineGeneration: true
-      }), { status: 200 });
+      }), { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // Regular chat response with profile context
@@ -180,10 +203,23 @@ Please create 3 different workout routines using these exercises. Make sure to u
     const result = await model.generateContent(enhancedPrompt);
     const text = await result.response.text();
 
-    return new Response(JSON.stringify({ response: text }), { status: 200 });
+    return new Response(JSON.stringify({ response: text }), { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     console.error("Error generating response:", error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
+    return new Response(
+      JSON.stringify({ 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error : undefined 
+      }), 
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
 
