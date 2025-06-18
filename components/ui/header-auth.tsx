@@ -6,13 +6,12 @@ import Link from "next/link";
 import { Badge } from "./badge";
 import { Button } from "./button";
 import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/context/auth-context";
 
-export default async function AuthButton() {
-  const supabase = await createClient();
+export default function AuthButton() {
+  const { user } = useAuth();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+
 
   if (!hasEnvVars) {
     return (

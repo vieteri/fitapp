@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, DumbbellIcon, Pencil, Trash2 } from "lucide-react";
@@ -33,7 +33,7 @@ export default function ExercisesPage() {
   const supabase = createClient();
 
 
-  const fetchExercises = async (pageNumber: number) => {
+  const fetchExercises = useCallback(async (pageNumber: number) => {
     try {
       const start = pageNumber * itemsPerPage;
       const end = start + itemsPerPage - 1;
@@ -46,14 +46,14 @@ export default function ExercisesPage() {
 
       if (error) throw error;
 
-      setExercises(pageNumber === 0 ? data : [...exercises, ...data]);
+      setExercises(prev => pageNumber === 0 ? data : [...prev, ...data]);
       setHasMore(count ? start + data.length < count : false);
     } catch (error) {
       console.error('Error fetching exercises:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -74,7 +74,7 @@ export default function ExercisesPage() {
 
   useEffect(() => {
     fetchExercises(page);
-  }, [page]);
+  }, [page, fetchExercises]);
 
   const deleteDialog = (
     <Dialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>

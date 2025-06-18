@@ -23,7 +23,8 @@ export async function GET(
         *,
         routine_exercises (
           *,
-          exercise:exercises (*)
+          exercise:exercises (*),
+          exercise_sets (*)
         )
       `)
       .eq('id', resolvedParams.id)
@@ -195,115 +196,94 @@ export async function PATCH(
     
     // Check if we're updating exercises
     if (body.exercises !== undefined) {
-      // Update routine basic details if provided
-      const updateData: Partial<{
-        name: string;
-        description: string | null;
-        updated_at: string;
-      }> = {
-        updated_at: new Date().toISOString()
-      };
-      
-      if (body.name !== undefined) updateData.name = body.name;
-      if (body.description !== undefined) updateData.description = body.description;
-      
-      // Update routine details
-      const { data: updatedRoutine, error: routineError } = await supabase
-        .from('routines')
-        .update(updateData)
-        .eq('id', params.id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-        
-      if (routineError) {
-        console.error('Error updating routine:', routineError);
-        return NextResponse.json(
-          { error: 'Error updating routine' },
-          { status: 500 }
-        );
-      }
-      
-      // Get current exercises
-      const { data: currentExercises } = await supabase
+      // First, fetch existing routine exercises to get their IDs
+      const { data: existingExercises } = await supabase
         .from('routine_exercises')
         .select('id')
         .eq('routine_id', params.id);
-        
-      const currentExerciseIds = currentExercises?.map(ex => ex.id) || [];
-      const newExercises = body.exercises || [];
-      const updatedExerciseIds = newExercises
-        .filter((ex: any) => ex.id)
-        .map((ex: any) => ex.id);
-      
-      // Find exercises to delete (in current but not in updated)
-      const exercisesToDelete = currentExerciseIds.filter(
-        id => !updatedExerciseIds.includes(id)
-      );
-      
-      if (exercisesToDelete.length > 0) {
-        const { error: deleteError } = await supabase
+
+      if (existingExercises?.length) {
+        // Delete existing exercise sets
+        await supabase
+          .from('exercise_sets')
+          .delete()
+          .in('routine_exercise_id', existingExercises.map(ex => ex.id));
+
+        // Delete existing routine exercises
+        await supabase
           .from('routine_exercises')
           .delete()
-          .in('id', exercisesToDelete);
-          
-        if (deleteError) {
-          console.error('Error deleting exercises:', deleteError);
+          .eq('routine_id', params.id);
+      }
+
+      // Create routine exercises and their sets
+      const routineExercisesData = [];
+      const exerciseSetsData = [];
+
+      for (const ex of body.exercises) {
+        if (!ex.exercise_id || !ex.sets || ex.sets.length === 0) {
+          continue;
+        }
+
+        // Create routine exercise entry
+        const routineExercise = {
+          routine_id: params.id,
+          exercise_id: ex.exercise_id,
+          sets: ex.sets.length,
+          reps: ex.sets[0]?.reps || 10, // Use first set's reps as default
+          weight: ex.sets[0]?.weight || null, // Use first set's weight as default
+          duration_minutes: ex.sets[0]?.duration_minutes || null,
+          order_index: ex.order_index || 0
+        };
+        routineExercisesData.push(routineExercise);
+      }
+
+      const { data: newRoutineExercises, error: exercisesError } = await supabase
+        .from('routine_exercises')
+        .insert(routineExercisesData)
+        .select();
+
+      if (exercisesError) {
+        console.error('Error updating routine exercises:', exercisesError);
+        return NextResponse.json(
+          { error: 'Error updating routine exercises' },
+          { status: 500 }
+        );
+      }
+
+      // Create individual exercise sets
+      for (let i = 0; i < body.exercises.length; i++) {
+        const ex = body.exercises[i];
+        const routineExercise = newRoutineExercises?.[i];
+        
+        if (!routineExercise || !ex.sets) continue;
+
+        for (let setIndex = 0; setIndex < ex.sets.length; setIndex++) {
+          const set = ex.sets[setIndex];
+          exerciseSetsData.push({
+            routine_exercise_id: routineExercise.id,
+            set_number: setIndex + 1,
+            reps: set.reps || 10,
+            weight: set.weight || null,
+            duration_minutes: set.duration_minutes || null
+          });
+        }
+      }
+
+      if (exerciseSetsData.length > 0) {
+        const { error: setsError } = await supabase
+          .from('exercise_sets')
+          .insert(exerciseSetsData);
+
+        if (setsError) {
+          console.error('Error creating exercise sets:', setsError);
           return NextResponse.json(
-            { error: 'Error deleting exercises' },
+            { error: 'Error creating exercise sets' },
             { status: 500 }
           );
         }
       }
-      
-      // Process each exercise
-      for (const exercise of newExercises) {
-        if (exercise.id) {
-          // Update existing exercise
-          const { error: updateError } = await supabase
-            .from('routine_exercises')
-            .update({
-              exercise_id: exercise.exercise_id,
-              sets: exercise.sets,
-              reps: exercise.reps,
-              weight: exercise.weight || null,
-              duration_minutes: exercise.duration_minutes || null,
-              order_index: exercise.order_index || 0
-            })
-            .eq('id', exercise.id)
-            .eq('routine_id', params.id);
-            
-          if (updateError) {
-            console.error('Error updating exercise:', updateError);
-            return NextResponse.json(
-              { error: 'Error updating exercise' },
-              { status: 500 }
-            );
-          }
-        } else {
-          // Add new exercise
-          const { error: insertError } = await supabase
-            .from('routine_exercises')
-            .insert({
-              routine_id: params.id,
-              exercise_id: exercise.exercise_id,
-              sets: exercise.sets,
-              reps: exercise.reps,
-              weight: exercise.weight || null,
-              duration_minutes: exercise.duration_minutes || null,
-              order_index: exercise.order_index || 0
-            });
-            
-          if (insertError) {
-            console.error('Error adding exercise:', insertError);
-            return NextResponse.json(
-              { error: 'Error adding exercise' },
-              { status: 500 }
-            );
-          }
-        }
-      }
-      
+
       // Get the updated routine with exercises
       const { data: routine, error: fetchError } = await supabase
         .from('routines')

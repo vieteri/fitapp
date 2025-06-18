@@ -40,7 +40,7 @@ export default function Login(props: { searchParams: Promise<Message> }) {
       <form className="flex flex-col w-full max-w-md mx-auto p-4 bg-white dark:bg-gray-900 shadow-lg rounded-lg">
         <h1 className="text-2xl font-medium">Sign in</h1>
         <p className="text-sm text-foreground">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link className="text-primary font-medium underline" href="/sign-up">
             Sign up
           </Link>

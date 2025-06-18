@@ -80,13 +80,15 @@ export default function WorkoutHistoryPage() {
                       {formatDistanceToNow(new Date(workout.created_at), { addSuffix: true })}
                     </p>
                   </div>
-                  <Badge variant={workout.status === 'completed' ? 'default' : 'secondary'}>
-                    {workout.status}
+                  <Badge variant="default">
+                    Completed
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {workout.workout_exercises?.length ?? 0} exercises
-                </p>
+                {workout.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {workout.description}
+                  </p>
+                )}
               </Card>
             ))}
 
