@@ -2,6 +2,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from '@/utils/supabase/server';
 import { verifyJWT } from '@/utils/auth';
 
+// Set maximum duration for this serverless function (25 seconds)
+export const maxDuration = 25;
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Mobile-optimized fitness expert system prompt for React Native
@@ -76,6 +79,16 @@ When creating routines, respond with a JSON structure containing:
 
 Always provide practical, safe, and effective routines based on the available exercises.`;
 
+// Simple timeout wrapper for AI calls only
+const withAITimeout = (promise: Promise<any>, timeoutMs: number): Promise<any> => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`AI request timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+};
+
 export async function POST(req: Request) {
   try {
     const { prompt, generateRoutines = false } = await req.json();
@@ -145,11 +158,12 @@ Use this information to personalize your fitness advice. Consider their age, BMI
 
       const { user, supabase } = authResult as { user: any; supabase: any };
 
-      // Fetch all available exercises (global exercises)
+      // Fetch exercises with limit to prevent large datasets
       const { data: exercises, error: exercisesError } = await supabase
         .from('exercises')
-        .select('*')
-        .order('name');
+        .select('id, name, description, muscle_group')
+        .order('name')
+        .limit(30); // Reduced limit to prevent timeout
 
       if (exercisesError) {
         console.error('Error fetching exercises:', exercisesError);
@@ -182,10 +196,18 @@ ${exerciseList}
 
 USER REQUEST: ${prompt}
 
-Please create 3 different workout routines using these exercises. Make sure to use exercise IDs from the list above. Consider the user's profile information when designing the routines.`;
+Please create 2 different workout routines using these exercises. Make sure to use exercise IDs from the list above. Consider the user's profile information when designing the routines.`;
 
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-      const result_ai = await model.generateContent(enhancedPrompt);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
+        generationConfig: {
+          maxOutputTokens: 2048, // Limit output to prevent long responses
+          temperature: 0.7,
+        }
+      });
+      
+      // Add timeout to AI generation
+      const result_ai = await withAITimeout(model.generateContent(enhancedPrompt), 15000);
       const text = await result_ai.response.text();
 
       try {
@@ -220,8 +242,16 @@ Please create 3 different workout routines using these exercises. Make sure to u
     // Regular chat response with profile context (works for both authenticated and unauthenticated users)
     const enhancedPrompt = `${fitnessSystemPrompt}${profileContext}\n\nUser question: ${prompt}`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const result = await model.generateContent(enhancedPrompt);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+      generationConfig: {
+        maxOutputTokens: 1024, // Limit output for regular chat
+        temperature: 0.7,
+      }
+    });
+    
+    // Add timeout to AI generation
+    const result = await withAITimeout(model.generateContent(enhancedPrompt), 10000);
     const text = await result.response.text();
 
     return new Response(JSON.stringify({ 
@@ -233,17 +263,26 @@ Please create 3 different workout routines using these exercises. Make sure to u
     });
   } catch (error) {
     console.error("Error generating response:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
-    return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? error : undefined 
-      }), 
-      { 
-        status: 500,
+    
+    // Handle timeout errors specifically
+    if (error instanceof Error && error.message.includes('timed out')) {
+      return new Response(JSON.stringify({ 
+        error: "Request timed out. Please try again with a simpler request.",
+        code: 'timeout'
+      }), { 
+        status: 504,
         headers: { 'Content-Type': 'application/json' }
-      }
-    );
+      });
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error : undefined 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 

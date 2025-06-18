@@ -9,6 +9,11 @@ const nextConfig = {
       },
     ],
   },
+  // Serverless function configuration
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    mySecret: 'secret',
+  },
   // Ensure TypeScript checking during build
   typescript: {
     ignoreBuildErrors: false,
