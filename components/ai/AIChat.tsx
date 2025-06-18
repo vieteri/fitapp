@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Send, Bot, User, Loader2, Sparkles, Copy, CheckCircle, Dumbbell, Clock, Target, Save, Eye, Plus } from "lucide-react";
 import { getAuthToken, authFetch } from "@/app/client-actions";
 import { useAuth } from "@/context/auth-context";
+import { TableRenderer } from "./table-renderer";
 
 interface ExerciseSet {
   reps: number;
@@ -106,7 +107,7 @@ export default function AIChat() {
             generateRoutines: true
           }),
         });
-      } else if (isRoutineRequest && !isUserAuthenticated()) {
+      } else if (isRoutineRequest) {
         // Handle routine request without authentication
         const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -134,6 +135,16 @@ export default function AIChat() {
       if (!res.ok) {
         throw new Error(data.error || 'Failed to generate response');
       }
+
+      // Debug logging
+      console.log('=== FULL API RESPONSE ===');
+      console.log('Response data:', JSON.stringify(data, null, 2));
+      console.log('Has routines:', !!data.routines);
+      console.log('Routines array:', data.routines);
+      console.log('Is routine generation:', data.isRoutineGeneration);
+      console.log('Response error:', data.error);
+      console.log('Response content sample:', data.response?.substring(0, 200));
+      console.log('========================');
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -249,7 +260,9 @@ export default function AIChat() {
             Save Routine
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">{routine.description}</p>
+        <div className="text-sm text-muted-foreground">
+          <TableRenderer content={routine.description} />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -278,7 +291,9 @@ export default function AIChat() {
                   )}
                 </div>
                 {exercise.notes && (
-                  <p className="text-xs text-muted-foreground mt-1 italic">{exercise.notes}</p>
+                  <div className="text-xs text-muted-foreground mt-1 italic">
+                    <TableRenderer content={exercise.notes} />
+                  </div>
                 )}
               </div>
             </div>
@@ -381,10 +396,14 @@ export default function AIChat() {
                     {message.isUser ? (
                       <p className="mb-0 text-white">{message.content}</p>
                     ) : (
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: message.content }} 
-                        className="[&>*:last-child]:mb-0"
-                      />
+                      // Only show the main response if it's not a routine generation or if there are no routines
+                      !message.isRoutineGeneration || !message.routines || message.routines.length === 0 ? (
+                        <TableRenderer content={message.content} />
+                      ) : (
+                        <div className="text-sm text-muted-foreground italic">
+                          ✨ Generated {message.routines.length} personalized workout routine{message.routines.length > 1 ? 's' : ''} for you!
+                        </div>
+                      )
                     )}
                   </div>
                   
@@ -416,7 +435,9 @@ export default function AIChat() {
                     {message.explanation && (
                       <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
                         <CardContent className="p-4">
-                          <p className="text-sm text-green-800 dark:text-green-200">{message.explanation}</p>
+                          <div className="text-sm text-green-800 dark:text-green-200">
+                            <TableRenderer content={message.explanation} />
+                          </div>
                         </CardContent>
                       </Card>
                     )}

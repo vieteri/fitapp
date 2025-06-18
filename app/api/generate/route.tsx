@@ -10,27 +10,28 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // Mobile-optimized fitness expert system prompt for React Native
 const fitnessSystemPrompt = `You are a knowledgeable fitness coach providing advice directly in a mobile fitness app.
 
-FORMAT YOUR RESPONSES FOR MAXIMUM READABILITY:
-- Keep responses under 200 words maximum
-- Use short paragraphs (1-2 sentences each) with line breaks between them
-- Structure information with clear sections using emojis as headers
-- Use bullet points with dashes (-) for lists
-- Add spacing between different topics
-- No markdown formatting (**, ##, etc.)
-- Use simple, conversational language
+FORMAT YOUR RESPONSES IN TABULAR FORM:
+- Always structure information using tables with clear headers
+- Use ASCII table format (| Column 1 | Column 2 | Column 3 |)
+- Keep responses concise but comprehensive
+- Use tables for exercise plans, nutrition info, form tips, etc.
+- Add brief explanatory text before and after tables when needed
 
 RESPONSE STRUCTURE:
-🎯 Main Point: Start with the key takeaway
-📋 Details: Provide specific, actionable steps
-💡 Pro Tip: Include one helpful bonus tip
-⚠️ Safety: Mention any important safety considerations (when relevant)
+Present information in organized tables such as:
+
+| Category | Details | Notes |
+|----------|---------|-------|
+| Main Point | Key takeaway | Why it matters |
+| Action Steps | Specific instructions | Implementation tips |
+| Safety | Important considerations | Risk mitigation |
 
 CONTENT GUIDELINES:
 - Prioritize practical, actionable advice users can implement immediately
 - Focus on proper form and technique first, then progression
 - Include beginner, intermediate, and advanced options when relevant
-- Suggest alternatives for people without gym equipment
-- Mention time-efficient workout options (5-15 minutes) for busy people
+- Use tables to compare exercises, show progressions, list alternatives
+- Structure workout plans, nutrition advice, and form tips in tabular format
 - Always prioritize safety
 - For injuries/medical issues, recommend consulting healthcare professionals
 
@@ -58,7 +59,7 @@ When creating routines, respond with a JSON structure containing:
   "routines": [
     {
       "name": "Routine Name",
-      "description": "Brief description of the routine",
+      "description": "Brief description of the routine with tabular workout summary:\n\n| Exercise | Sets | Reps | Rest | Notes |\n|----------|------|------|------|-------|\n| Exercise 1 | 3 | 10-12 | 60s | Form tips |\n| Exercise 2 | 3 | 8-10 | 90s | Modifications |",
       "exercises": [
         {
           "exercise_id": "uuid",
@@ -69,15 +70,15 @@ When creating routines, respond with a JSON structure containing:
           ],
           "order_index": 0,
           "rest_seconds": 60,
-          "notes": "Form tips or modifications"
+          "notes": "Form tips or modifications in tabular format when helpful"
         }
       ]
     }
   ],
-  "explanation": "Brief explanation of why these routines work well together"
+  "explanation": "Brief explanation with tabular comparison of routines:\n\n| Routine | Focus | Duration | Difficulty |\n|---------|-------|----------|------------|\n| Routine 1 | Strength | 45min | Beginner |\n| Routine 2 | Cardio | 30min | Intermediate |"
 }
 
-Always provide practical, safe, and effective routines based on the available exercises.`;
+Always provide practical, safe, and effective routines with tabular summaries for easy comparison.`;
 
 // Simple timeout wrapper for AI calls only
 const withAITimeout = (promise: Promise<any>, timeoutMs: number): Promise<any> => {
@@ -196,25 +197,39 @@ ${exerciseList}
 
 USER REQUEST: ${prompt}
 
-Please create 2 different workout routines using these exercises. Make sure to use exercise IDs from the list above. Consider the user's profile information when designing the routines.`;
+Please create 1 comprehensive workout routine using these exercises. Make sure to use exercise IDs from the list above. Consider the user's profile information when designing the routine.`;
 
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash-lite-preview-06-17",
         generationConfig: {
-          maxOutputTokens: 2048, // Limit output to prevent long responses
           temperature: 0.7,
         }
       });
       
-      // Add timeout to AI generation
-      const result_ai = await withAITimeout(model.generateContent(enhancedPrompt), 15000);
+      // Add timeout to AI generation - increased to 60 seconds
+      const result_ai = await withAITimeout(model.generateContent(enhancedPrompt), 60000);
       const text = await result_ai.response.text();
 
       try {
-        // Try to parse as JSON first
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const routineData = JSON.parse(jsonMatch[0]);
+        // Try multiple parsing strategies
+        let routineData = null;
+        
+        // Strategy 1: Look for JSON in code blocks
+        const codeBlockMatch = text.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+        if (codeBlockMatch) {
+          console.log('Found JSON in code block:', codeBlockMatch[1].substring(0, 200));
+          routineData = JSON.parse(codeBlockMatch[1]);
+        } else {
+          // Strategy 2: Look for raw JSON
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            console.log('Found raw JSON:', jsonMatch[0].substring(0, 200));
+            routineData = JSON.parse(jsonMatch[0]);
+          }
+        }
+        
+        if (routineData && routineData.routines) {
+          console.log('Successfully parsed routines:', routineData.routines?.length);
           return new Response(JSON.stringify({ 
             response: text,
             routines: routineData.routines,
@@ -226,8 +241,8 @@ Please create 2 different workout routines using these exercises. Make sure to u
           });
         }
       } catch (parseError) {
-        // If JSON parsing fails, return as regular text
-        console.log("Could not parse JSON, returning as text");
+        console.error("JSON parsing failed:", parseError);
+        console.log("Raw text sample:", text.substring(0, 500));
       }
 
       return new Response(JSON.stringify({ 
@@ -245,7 +260,6 @@ Please create 2 different workout routines using these exercises. Make sure to u
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash",
       generationConfig: {
-        maxOutputTokens: 1024, // Limit output for regular chat
         temperature: 0.7,
       }
     });

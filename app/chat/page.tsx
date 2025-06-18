@@ -123,7 +123,7 @@ export default function ChatPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Main Chat Interface */}
         <Card className="bg-white/70 backdrop-blur-sm border-white/20 shadow-xl">
           <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
