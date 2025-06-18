@@ -1,3 +1,74 @@
+-- Create core tables first
+
+-- Create exercises table
+CREATE TABLE IF NOT EXISTS public.exercises (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    description TEXT,
+    muscle_group VARCHAR NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create profiles table
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name VARCHAR,
+    birthday DATE,
+    height INTEGER, -- in cm
+    weight INTEGER, -- in kg
+    avatar_url VARCHAR,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create routines table
+CREATE TABLE IF NOT EXISTS public.routines (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name VARCHAR NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create workouts table
+CREATE TABLE IF NOT EXISTS public.workouts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name VARCHAR NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create routine_exercises table
+CREATE TABLE IF NOT EXISTS public.routine_exercises (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    routine_id UUID NOT NULL REFERENCES routines(id) ON DELETE CASCADE,
+    exercise_id UUID NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    sets INTEGER NOT NULL,
+    reps INTEGER NOT NULL,
+    weight DECIMAL,
+    duration_minutes INTEGER,
+    order_index INTEGER NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create workout_exercises table
+CREATE TABLE IF NOT EXISTS public.workout_exercises (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    workout_id UUID REFERENCES workouts(id) ON DELETE CASCADE,
+    exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
+    sets INTEGER NOT NULL,
+    reps INTEGER NOT NULL,
+    weight DECIMAL,
+    duration_minutes INTEGER,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Create exercise_sets table
 CREATE TABLE IF NOT EXISTS public.exercise_sets (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -16,13 +87,167 @@ CREATE TABLE IF NOT EXISTS public.exercise_sets (
 );
 
 -- Add indexes
+CREATE INDEX IF NOT EXISTS idx_exercises_muscle_group ON public.exercises(muscle_group);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(id);
+CREATE INDEX IF NOT EXISTS idx_routines_user_id ON public.routines(user_id);
+CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON public.workouts(user_id);
+CREATE INDEX IF NOT EXISTS idx_routine_exercises_routine_id ON public.routine_exercises(routine_id);
+CREATE INDEX IF NOT EXISTS idx_routine_exercises_exercise_id ON public.routine_exercises(exercise_id);
+CREATE INDEX IF NOT EXISTS idx_workout_exercises_workout_id ON public.workout_exercises(workout_id);
+CREATE INDEX IF NOT EXISTS idx_workout_exercises_exercise_id ON public.workout_exercises(exercise_id);
 CREATE INDEX IF NOT EXISTS idx_exercise_sets_workout_exercise_id ON public.exercise_sets(workout_exercise_id);
 CREATE INDEX IF NOT EXISTS idx_exercise_sets_routine_exercise_id ON public.exercise_sets(routine_exercise_id);
 
--- Enable RLS
+-- Enable RLS for all tables
+ALTER TABLE public.exercises ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.routines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.routine_exercises ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workout_exercises ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exercise_sets ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+
+-- Exercises policies (public read access)
+CREATE POLICY "Anyone can view exercises"
+    ON public.exercises
+    FOR SELECT
+    USING (true);
+
+-- Profiles policies
+CREATE POLICY "Users can view their own profile"
+    ON public.profiles
+    FOR SELECT
+    USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile"
+    ON public.profiles
+    FOR INSERT
+    WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile"
+    ON public.profiles
+    FOR UPDATE
+    USING (auth.uid() = id);
+
+-- Routines policies
+CREATE POLICY "Users can view their own routines"
+    ON public.routines
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own routines"
+    ON public.routines
+    FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own routines"
+    ON public.routines
+    FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own routines"
+    ON public.routines
+    FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Workouts policies
+CREATE POLICY "Users can view their own workouts"
+    ON public.workouts
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own workouts"
+    ON public.workouts
+    FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own workouts"
+    ON public.workouts
+    FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own workouts"
+    ON public.workouts
+    FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Routine exercises policies
+CREATE POLICY "Users can view their own routine exercises"
+    ON public.routine_exercises
+    FOR SELECT
+    USING (
+        routine_id IN (
+            SELECT id FROM routines WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert their own routine exercises"
+    ON public.routine_exercises
+    FOR INSERT
+    WITH CHECK (
+        routine_id IN (
+            SELECT id FROM routines WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update their own routine exercises"
+    ON public.routine_exercises
+    FOR UPDATE
+    USING (
+        routine_id IN (
+            SELECT id FROM routines WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete their own routine exercises"
+    ON public.routine_exercises
+    FOR DELETE
+    USING (
+        routine_id IN (
+            SELECT id FROM routines WHERE user_id = auth.uid()
+        )
+    );
+
+-- Workout exercises policies
+CREATE POLICY "Users can view their own workout exercises"
+    ON public.workout_exercises
+    FOR SELECT
+    USING (
+        workout_id IN (
+            SELECT id FROM workouts WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert their own workout exercises"
+    ON public.workout_exercises
+    FOR INSERT
+    WITH CHECK (
+        workout_id IN (
+            SELECT id FROM workouts WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update their own workout exercises"
+    ON public.workout_exercises
+    FOR UPDATE
+    USING (
+        workout_id IN (
+            SELECT id FROM workouts WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete their own workout exercises"
+    ON public.workout_exercises
+    FOR DELETE
+    USING (
+        workout_id IN (
+            SELECT id FROM workouts WHERE user_id = auth.uid()
+        )
+    );
+
+-- Exercise sets policies
 CREATE POLICY "Users can view their own exercise sets"
     ON public.exercise_sets
     FOR SELECT
@@ -107,6 +332,37 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
+
+-- Create triggers for updated_at columns
+CREATE TRIGGER update_exercises_updated_at
+    BEFORE UPDATE ON public.exercises
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_profiles_updated_at
+    BEFORE UPDATE ON public.profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_routines_updated_at
+    BEFORE UPDATE ON public.routines
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_workouts_updated_at
+    BEFORE UPDATE ON public.workouts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_routine_exercises_updated_at
+    BEFORE UPDATE ON public.routine_exercises
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_workout_exercises_updated_at
+    BEFORE UPDATE ON public.workout_exercises
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_exercise_sets_updated_at
     BEFORE UPDATE ON public.exercise_sets

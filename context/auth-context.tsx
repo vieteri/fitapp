@@ -72,43 +72,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false); // Set loading to false immediately for better UX
         }
 
-        // Background verification with shorter timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+        // Background verification with shorter timeout - only if we have a token
+        if (token && !isTokenExpired(token)) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
 
-        try {
-          const response = await authFetch('/api/auth/verify', {
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          
-          const data = await response.json();
-          
-          if (mounted) {
-            if (data.valid) {
-              setUser(data.user);
-              setVerified(true);
+          try {
+            const response = await authFetch('/api/auth/verify', {
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (mounted) {
+                if (data.valid) {
+                  setUser(data.user);
+                  setVerified(true);
+                } else {
+                  localStorage.removeItem('access_token');
+                  localStorage.removeItem('refresh_token');
+                  setUser(null);
+                }
+              }
             } else {
-              localStorage.removeItem('access_token');
-              localStorage.removeItem('refresh_token');
-              setUser(null);
+              // Handle non-200 responses
+              if (mounted && (response.status === 401 || response.status === 403)) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                setUser(null);
+              }
+            }
+          } catch (error: any) {
+            clearTimeout(timeoutId);
+            if (error?.name !== 'AbortError') {
+              console.error('Auth verification error:', error);
+              if (mounted) {
+                // Handle different error types
+                if (error?.status === 401 || error?.status === 403) {
+                  localStorage.removeItem('access_token');
+                  localStorage.removeItem('refresh_token');
+                  setUser(null);
+                } else if (error?.status === 0) {
+                  // Network error - keep user logged in locally
+                  console.log('Network error during auth verification, keeping user logged in locally');
+                } else {
+                  // Other errors - log but don't necessarily sign out
+                  console.log('Auth verification failed, but keeping user logged in locally');
+                }
+              }
             }
           }
-                 } catch (error: any) {
-           clearTimeout(timeoutId);
-           if (error?.name !== 'AbortError') {
-             console.error('Auth verification error:', error);
-             if (mounted) {
-               // Keep the user from token if verification fails due to network
-               // but clear tokens if it's an auth error
-               if (error?.status === 401 || error?.status === 403) {
-                 localStorage.removeItem('access_token');
-                 localStorage.removeItem('refresh_token');
-                 setUser(null);
-               }
-             }
-           }
-         }
+        }
       } catch (error) {
         console.error('Auth initialization error:', error);
         if (mounted) {

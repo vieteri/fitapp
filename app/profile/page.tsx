@@ -6,6 +6,9 @@ import { ProfileSkeleton } from '@/components/profile/profile-skeleton';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 
+// Force dynamic rendering to prevent build issues
+export const dynamic = 'force-dynamic';
+
 async function getProfile() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

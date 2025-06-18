@@ -3,6 +3,9 @@ import { ProfileEditForm } from '@/components/profile/profile-edit-form';
 import { ProfileSkeleton } from '@/components/profile/profile-skeleton';
 import { getProfile } from '@/app/server-actions';
 
+// Force dynamic rendering to prevent build issues
+export const dynamic = 'force-dynamic';
+
 async function ProfileEditWrapper() {
   const profile = await getProfile();
   return <ProfileEditForm initialProfile={profile} />;
