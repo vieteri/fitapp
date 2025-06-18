@@ -15,6 +15,7 @@ export async function PUT(request: Request) {
     const { user, supabase } = result;
     const body = await request.json();
     
+    // Validate required fields
     if (typeof body.full_name !== 'string') {
       return NextResponse.json(
         { error: 'Invalid full name' }, 
@@ -22,12 +23,69 @@ export async function PUT(request: Request) {
       );
     }
 
+    // Validate optional fields
+    const updateData: any = {
+      full_name: body.full_name,
+      updated_at: new Date().toISOString()
+    };
+
+    // Add birthday if provided
+    if (body.birthday !== undefined) {
+      if (body.birthday === null || body.birthday === '') {
+        updateData.birthday = null;
+      } else if (typeof body.birthday === 'string') {
+        // Validate date format
+        const date = new Date(body.birthday);
+        if (isNaN(date.getTime())) {
+          return NextResponse.json(
+            { error: 'Invalid birthday format' }, 
+            { status: 400 }
+          );
+        }
+        updateData.birthday = body.birthday;
+      } else {
+        return NextResponse.json(
+          { error: 'Invalid birthday' }, 
+          { status: 400 }
+        );
+      }
+    }
+
+    // Add height if provided
+    if (body.height !== undefined) {
+      if (body.height === null || body.height === '') {
+        updateData.height = null;
+      } else {
+        const height = Number(body.height);
+        if (isNaN(height) || height < 0 || height > 300) {
+          return NextResponse.json(
+            { error: 'Invalid height (must be between 0-300 cm)' }, 
+            { status: 400 }
+          );
+        }
+        updateData.height = height;
+      }
+    }
+
+    // Add weight if provided
+    if (body.weight !== undefined) {
+      if (body.weight === null || body.weight === '') {
+        updateData.weight = null;
+      } else {
+        const weight = Number(body.weight);
+        if (isNaN(weight) || weight < 0 || weight > 1000) {
+          return NextResponse.json(
+            { error: 'Invalid weight (must be between 0-1000 kg)' }, 
+            { status: 400 }
+          );
+        }
+        updateData.weight = weight;
+      }
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({
-        full_name: body.full_name,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', user.id);
 
     if (error) {

@@ -98,4 +98,39 @@ Please file feedback and issues over on the [Supabase GitHub org](https://github
 
 ## AI Features
 
-To come
+### AI Fitness Coach with Voice (TTS)
+
+The application now includes an AI-powered fitness coach with text-to-speech capabilities:
+
+#### Features:
+- **Gemini 2.0 Flash Integration**: Uses Google's latest Gemini model for generating fitness advice
+- **Text-to-Speech**: Browser-based TTS for audio playback of responses
+- **Voice Selection**: Choose from available system voices for personalized experience
+- **Fitness-Optimized Prompts**: Specialized system prompts for workout guidance and motivation
+- **Auto-Play**: Automatic audio playback after generating responses
+
+#### Usage:
+1. Navigate to `/chat/tts` to access the voice-enabled chat
+2. Type your fitness question or use the regular text chat at `/chat`
+3. The AI will generate personalized advice and automatically play it as audio
+4. Select different voices from the dropdown for your preference
+
+#### Technical Implementation:
+- **API Route**: `/api/generate-tts` - Handles Gemini text generation
+- **Custom Hook**: `useTTS()` - Manages browser TTS functionality
+- **Components**: 
+  - `SimpleTTSChat` - Main TTS chat interface
+  - `AITTSChat` - Advanced version with speech recognition (optional)
+
+#### Environment Variables:
+```bash
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+#### Supported Browsers:
+- Chrome/Chromium (recommended)
+- Firefox
+- Safari
+- Edge
+
+The TTS functionality uses the Web Speech API, which is supported in all modern browsers.

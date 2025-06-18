@@ -6,13 +6,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Save, Dumbbell } from "lucide-react";
+import { Plus, Trash2, Save, Dumbbell, Copy } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Exercise, Routine, RoutineExercise } from '@/types/supabase-types';
+import type { Exercise, Routine, RoutineExercise, ExerciseSet } from '@/types/supabase-types';
 
 interface RoutineFormProps {
-  initialData?: Routine;
+  initialData?: Routine & {
+    routine_exercises?: (RoutineExercise & {
+      exercise?: Exercise;
+      exercise_sets?: ExerciseSet[];
+    })[];
+  };
   onSuccess: (routine: Routine) => void;
+}
+
+interface SetData {
+  reps: number;
+  weight: number | null;
+  duration_minutes: number | null;
+}
+
+interface ExerciseData {
+  id?: string;
+  exercise_id: string;
+  sets: SetData[];
+  order_index?: number;
+  exercise?: Exercise | null;
 }
 
 export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
@@ -21,25 +40,29 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
   const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
   const [name, setName] = useState(initialData?.name || '');
   const [description, setDescription] = useState(initialData?.description || '');
-  const [exercises, setExercises] = useState<{
-    id?: string;
-    exercise_id: string;
-    sets: number;
-    reps: number;
-    weight: number | null;
-    duration_minutes: number | null;
-    order_index?: number;
-    exercise?: Exercise | null;
-  }[]>(initialData?.routine_exercises?.map(re => ({
-    id: re.id,
-    exercise_id: re.exercise_id,
-    sets: re.sets,
-    reps: re.reps,
-    weight: re.weight,
-    duration_minutes: re.duration_minutes,
-    order_index: re.order_index,
-    exercise: re.exercise
-  })) || []);
+  const [exercises, setExercises] = useState<ExerciseData[]>(() => {
+    if (!initialData?.routine_exercises) return [];
+    
+    return initialData.routine_exercises.map(re => ({
+      id: re.id,
+      exercise_id: re.exercise_id,
+      sets: re.exercise_sets && re.exercise_sets.length > 0 
+        ? re.exercise_sets
+            .sort((a, b) => a.set_number - b.set_number)
+            .map(set => ({
+              reps: set.reps,
+              weight: set.weight,
+              duration_minutes: set.duration_minutes
+            }))
+        : Array.from({ length: re.sets }, () => ({
+            reps: re.reps,
+            weight: re.weight,
+            duration_minutes: re.duration_minutes
+          })),
+      order_index: re.order_index,
+      exercise: re.exercise
+    }));
+  });
   const [loadingExercises, setLoadingExercises] = useState(true);
 
   useEffect(() => {
@@ -66,9 +89,9 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
       return;
     }
     
-    // Validate that all exercises have an exercise_id
-    if (exercises.some(ex => !ex.exercise_id)) {
-      setError("Please select an exercise for all items");
+    // Validate that all exercises have an exercise_id and at least one set
+    if (exercises.some(ex => !ex.exercise_id || ex.sets.length === 0)) {
+      setError("Please select an exercise for all items and ensure each has at least one set");
       return;
     }
     
@@ -92,9 +115,6 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
             id: ex.id,
             exercise_id: ex.exercise_id,
             sets: ex.sets,
-            reps: ex.reps,
-            weight: ex.weight,
-            duration_minutes: ex.duration_minutes,
             order_index: index
           }))
         })
@@ -120,10 +140,7 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
       ...prev, 
       {
         exercise_id: '',
-        sets: 3,
-        reps: 10,
-        weight: null,
-        duration_minutes: null
+        sets: [{ reps: 10, weight: null, duration_minutes: null }]
       }
     ]);
   };
@@ -143,6 +160,66 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
         updated[index].exercise = selectedExercise || null;
       }
       
+      return updated;
+    });
+  };
+
+  const addSet = (exerciseIndex: number) => {
+    setExercises(prev => {
+      const updated = [...prev];
+      const lastSet = updated[exerciseIndex].sets[updated[exerciseIndex].sets.length - 1];
+      updated[exerciseIndex] = {
+        ...updated[exerciseIndex],
+        sets: [
+          ...updated[exerciseIndex].sets,
+          { 
+            reps: lastSet?.reps || 10, 
+            weight: lastSet?.weight || null, 
+            duration_minutes: lastSet?.duration_minutes || null 
+          }
+        ]
+      };
+      return updated;
+    });
+  };
+
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    setExercises(prev => {
+      const updated = [...prev];
+      if (updated[exerciseIndex].sets.length > 1) {
+        updated[exerciseIndex] = {
+          ...updated[exerciseIndex],
+          sets: updated[exerciseIndex].sets.filter((_, i) => i !== setIndex)
+        };
+      }
+      return updated;
+    });
+  };
+
+  const updateSet = (exerciseIndex: number, setIndex: number, field: keyof SetData, value: any) => {
+    setExercises(prev => {
+      const updated = [...prev];
+      updated[exerciseIndex] = {
+        ...updated[exerciseIndex],
+        sets: updated[exerciseIndex].sets.map((set, i) => {
+          if (i !== setIndex) return set;
+          return { ...set, [field]: value };
+        })
+      };
+      return updated;
+    });
+  };
+
+  const copySetToAll = (exerciseIndex: number, setIndex: number) => {
+    const sourceSet = exercises[exerciseIndex].sets[setIndex];
+    setExercises(prev => {
+      const updated = [...prev];
+      updated[exerciseIndex] = {
+        ...updated[exerciseIndex],
+        sets: updated[exerciseIndex].sets.map((_, i) => 
+          i === setIndex ? sourceSet : { ...sourceSet }
+        )
+      };
       return updated;
     });
   };
@@ -200,23 +277,23 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
               <div className="h-4 w-32 bg-muted rounded-md animate-pulse mx-auto" />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {exercises.length === 0 ? (
                 <div className="text-center p-6 border rounded-md bg-muted/10">
                   <p className="text-muted-foreground">No exercises added yet. Use the button above to add exercises to your routine.</p>
                 </div>
               ) : (
-                exercises.map((exercise, index) => (
-                  <Card key={index} className="p-4">
+                exercises.map((exercise, exerciseIndex) => (
+                  <Card key={exerciseIndex} className="p-4">
                     <div className="space-y-4">
                       <div className="flex justify-between items-start">
                         <div className="w-full">
-                          <Label htmlFor={`exercise-${index}`} className="mb-2 block">
-                            Exercise {index + 1}
+                          <Label htmlFor={`exercise-${exerciseIndex}`} className="mb-2 block">
+                            Exercise {exerciseIndex + 1}
                           </Label>
                           <Select
                             value={exercise.exercise_id}
-                            onValueChange={(value) => updateExercise(index, 'exercise_id', value)}
+                            onValueChange={(value) => updateExercise(exerciseIndex, 'exercise_id', value)}
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select an exercise" />
@@ -234,56 +311,95 @@ export function RoutineForm({ initialData, onSuccess }: RoutineFormProps) {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          onClick={() => removeExercise(index)}
-                          className="text-destructive"
+                          onClick={() => removeExercise(exerciseIndex)}
+                          className="text-destructive ml-2"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                        <div className="space-y-2">
-                          <Label htmlFor={`sets-${index}`}>Sets</Label>
-                          <Input
-                            id={`sets-${index}`}
-                            type="number"
-                            min="1"
-                            value={exercise.sets}
-                            onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value) || 1)}
-                          />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Sets ({exercise.sets.length})</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addSet(exerciseIndex)}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Set
+                          </Button>
                         </div>
+
                         <div className="space-y-2">
-                          <Label htmlFor={`reps-${index}`}>Reps</Label>
-                          <Input
-                            id={`reps-${index}`}
-                            type="number"
-                            min="1"
-                            value={exercise.reps}
-                            onChange={(e) => updateExercise(index, 'reps', parseInt(e.target.value) || 1)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`weight-${index}`}>Weight (kg)</Label>
-                          <Input
-                            id={`weight-${index}`}
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={exercise.weight || ''}
-                            onChange={(e) => updateExercise(index, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
-                            placeholder="Optional"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`duration-${index}`}>Duration (min)</Label>
-                          <Input
-                            id={`duration-${index}`}
-                            type="number"
-                            min="0"
-                            value={exercise.duration_minutes || ''}
-                            onChange={(e) => updateExercise(index, 'duration_minutes', e.target.value ? parseInt(e.target.value) : null)}
-                            placeholder="Optional"
-                          />
+                          {exercise.sets.map((set, setIndex) => (
+                            <div key={setIndex} className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
+                              <span className="text-sm font-medium min-w-[2rem]">#{setIndex + 1}</span>
+                              
+                              <div className="flex-1 grid grid-cols-3 gap-2">
+                                <div>
+                                  <Label htmlFor={`reps-${exerciseIndex}-${setIndex}`} className="text-xs">Reps</Label>
+                                  <Input
+                                    id={`reps-${exerciseIndex}-${setIndex}`}
+                                    type="number"
+                                    min="1"
+                                    value={set.reps}
+                                    onChange={(e) => updateSet(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 1)}
+                                    className="h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`weight-${exerciseIndex}-${setIndex}`} className="text-xs">Weight (kg)</Label>
+                                  <Input
+                                    id={`weight-${exerciseIndex}-${setIndex}`}
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={set.weight || ''}
+                                    onChange={(e) => updateSet(exerciseIndex, setIndex, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
+                                    placeholder="0"
+                                    className="h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`duration-${exerciseIndex}-${setIndex}`} className="text-xs">Duration (min)</Label>
+                                  <Input
+                                    id={`duration-${exerciseIndex}-${setIndex}`}
+                                    type="number"
+                                    min="0"
+                                    value={set.duration_minutes || ''}
+                                    onChange={(e) => updateSet(exerciseIndex, setIndex, 'duration_minutes', e.target.value ? parseInt(e.target.value) : null)}
+                                    placeholder="0"
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => copySetToAll(exerciseIndex, setIndex)}
+                                  className="h-8 w-8"
+                                  title="Copy to all sets"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeSet(exerciseIndex, setIndex)}
+                                  className="h-8 w-8 text-destructive"
+                                  disabled={exercise.sets.length === 1}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>

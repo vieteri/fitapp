@@ -59,7 +59,8 @@ export async function GET(
         *,
         workout_exercises (
           *,
-          exercise:exercises (*)
+          exercise:exercises (*),
+          exercise_sets (*)
         )
       `)
       .eq('id', params.id)

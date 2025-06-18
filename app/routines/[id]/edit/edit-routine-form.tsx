@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Exercise, Routine } from '@/types/supabase-types';
+import type { Exercise, Routine, RoutineWithExercises } from '@/types/supabase-types';
 
 interface ExerciseSet {
   reps: number;
@@ -24,7 +24,7 @@ interface ExerciseWithSets {
 
 interface EditRoutineFormProps {
   initialData: {
-    routine: Routine;
+    routine: RoutineWithExercises;
     exercises: Exercise[];
   };
   routineId: string;

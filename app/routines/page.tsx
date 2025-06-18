@@ -29,10 +29,7 @@ export default function RoutinesPage() {
           throw new Error('Failed to fetch routines');
         }
         const data = await response.json();
-        setRoutines(data.routines.map((r: Routine) => ({
-          ...r,
-          routine_exercises: r.routine_exercises || []
-        })));
+        setRoutines(data.routines);
       } catch (error) {
         console.error('Error fetching routines:', error);
         if (error instanceof Error && error.message === 'Authentication token expired') {

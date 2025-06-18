@@ -6,41 +6,12 @@ import { RoutineHeader } from '@/components/routines/routine-header';
 import { RoutineDetails } from '@/components/routines/routine-details';
 import { ExerciseList } from '@/components/routines/exercise-list';
 import { RoutineSkeleton } from '@/components/routines/routine-skeleton';
-
-interface Exercise {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  equipment: string;
-  muscle_group: string;
-}
-
-interface RoutineExercise {
-  id: string;
-  routine_id: string;
-  exercise_id: string;
-  sets: number;
-  reps: number;
-  weight: number;
-  duration_minutes: number;
-  exercise: Exercise;
-}
-
-interface Routine {
-  id: string;
-  name: string;
-  description: string;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-  routine_exercises: RoutineExercise[];
-}
+import type { RoutineWithExercises } from '@/types/supabase-types';
 
 export default function RoutinePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const [routine, setRoutine] = useState<Routine | null>(null);
+  const [routine, setRoutine] = useState<RoutineWithExercises | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,7 +66,7 @@ export default function RoutinePage({ params }: { params: Promise<{ id: string }
       <div className="flex flex-col gap-4">
         <RoutineHeader 
           name={routine.name}
-          description={routine.description}
+          description={routine.description || ''}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
