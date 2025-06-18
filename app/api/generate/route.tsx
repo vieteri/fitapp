@@ -97,9 +97,11 @@ export async function POST(req: Request) {
     // Check if user is authenticated to get profile context
     let profileContext = "";
     let userProfile = null;
+    let isAuthenticated = false;
     
     const authResult = await verifyJWT(req.headers.get('authorization'));
     if (!('error' in authResult)) {
+      isAuthenticated = true;
       const { user, supabase } = authResult;
       
       // Fetch user's profile for context
@@ -123,34 +125,53 @@ export async function POST(req: Request) {
 
 Use this information to personalize your fitness advice. Consider their age, BMI category, and physical stats when making recommendations.`;
       }
+    } else {
+      // Log authentication error for debugging but don't fail the request for basic chat
+      console.log('Authentication failed:', authResult.error, 'Code:', authResult.code);
     }
 
-    // If this is a routine generation request, handle it differently
+    // If this is a routine generation request, authentication is required
     if (generateRoutines) {
-      if ('error' in authResult) {
-        return new Response(JSON.stringify({ error: authResult.error }), { 
-          status: authResult.status,
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ 
+          error: "Authentication required for routine generation. Please sign in to create personalized workout routines.",
+          code: authResult.code || 'auth_required',
+          requiresAuth: true
+        }), { 
+          status: 401,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      const { user, supabase } = authResult;
+      const { user, supabase } = authResult as { user: any; supabase: any };
 
-      // Fetch user's exercises
+      // Fetch all available exercises (global exercises)
       const { data: exercises, error: exercisesError } = await supabase
         .from('exercises')
         .select('*')
         .order('name');
 
       if (exercisesError) {
-        return new Response(JSON.stringify({ error: "Error fetching exercises" }), { 
+        console.error('Error fetching exercises:', exercisesError);
+        return new Response(JSON.stringify({ 
+          error: "Error fetching exercises: " + exercisesError.message 
+        }), { 
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
+      if (!exercises || exercises.length === 0) {
+        return new Response(JSON.stringify({ 
+          error: "No exercises available. Please contact support." 
+        }), { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       // Create enhanced prompt with available exercises
-      const exerciseList = exercises?.map(ex => 
+      const exerciseList = exercises?.map((ex: any) => 
         `- ${ex.name} (${ex.id}): ${ex.description} [${ex.muscle_group || 'General'}]`
       ).join('\n') || '';
 
@@ -196,14 +217,17 @@ Please create 3 different workout routines using these exercises. Make sure to u
       });
     }
 
-    // Regular chat response with profile context
+    // Regular chat response with profile context (works for both authenticated and unauthenticated users)
     const enhancedPrompt = `${fitnessSystemPrompt}${profileContext}\n\nUser question: ${prompt}`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const result = await model.generateContent(enhancedPrompt);
     const text = await result.response.text();
 
-    return new Response(JSON.stringify({ response: text }), { 
+    return new Response(JSON.stringify({ 
+      response: text,
+      isAuthenticated 
+    }), { 
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });

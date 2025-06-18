@@ -3,6 +3,9 @@ import { ExerciseForm } from '@/components/exercises/exercise-form';
 import { getExercise } from '@/app/server-actions';
 import { ExerciseFormSkeleton } from '@/components/exercises/exercise-form-skeleton';
 
+// Force dynamic rendering to prevent build issues
+export const dynamic = 'force-dynamic';
+
 interface Props {
   params: Promise<{ id: string }>;
 }

@@ -36,6 +36,7 @@ export const signOut = async () => {
 };
 
 export const getAuthToken = () => {
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem('access_token');
 };
 
@@ -43,24 +44,40 @@ export const getAuthToken = () => {
 export const authFetch = async (url: string, options: RequestInit = {}) => {
   const token = getAuthToken();
   if (!token) {
-    throw new Error('No authentication token found');
+    const error = new Error('No authentication token found');
+    (error as any).status = 401;
+    throw error;
   }
 
   const headers = {
+    'Content-Type': 'application/json',
     ...options.headers,
     'Authorization': `Bearer ${token}`,
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
 
-  if (response.status === 401) {
-    // Token expired or invalid
-    signOut();
-    throw new Error('Authentication token expired');
+    if (response.status === 401 || response.status === 403) {
+      // Token expired or invalid
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      const error = new Error('Authentication token expired');
+      (error as any).status = response.status;
+      throw error;
+    }
+
+    return response;
+  } catch (error) {
+    // Handle network errors
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      const networkError = new Error('Network error - please check your connection');
+      (networkError as any).status = 0;
+      throw networkError;
+    }
+    throw error;
   }
-
-  return response;
 };
