@@ -15,6 +15,7 @@ export type Database = {
           duration_minutes: number | null
           id: string
           reps: number
+          rest_time_seconds: number | null
           routine_exercise_id: string | null
           set_number: number
           updated_at: string | null
@@ -26,6 +27,7 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           reps: number
+          rest_time_seconds?: number | null
           routine_exercise_id?: string | null
           set_number: number
           updated_at?: string | null
@@ -37,6 +39,7 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           reps?: number
+          rest_time_seconds?: number | null
           routine_exercise_id?: string | null
           set_number?: number
           updated_at?: string | null
@@ -126,8 +129,10 @@ export type Database = {
           duration_minutes: number | null
           exercise_id: string
           id: string
+          notes: string | null
           order_index: number
           reps: number
+          rest_time_seconds: number | null
           routine_id: string
           sets: number
           updated_at: string
@@ -138,8 +143,10 @@ export type Database = {
           duration_minutes?: number | null
           exercise_id: string
           id?: string
+          notes?: string | null
           order_index: number
           reps: number
+          rest_time_seconds?: number | null
           routine_id: string
           sets: number
           updated_at?: string
@@ -150,8 +157,10 @@ export type Database = {
           duration_minutes?: number | null
           exercise_id?: string
           id?: string
+          notes?: string | null
           order_index?: number
           reps?: number
+          rest_time_seconds?: number | null
           routine_id?: string
           sets?: number
           updated_at?: string
@@ -178,6 +187,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          duration: string | null
           id: string
           name: string
           updated_at: string
@@ -186,6 +196,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          duration?: string | null
           id?: string
           name: string
           updated_at?: string
@@ -194,6 +205,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          duration?: string | null
           id?: string
           name?: string
           updated_at?: string
@@ -207,7 +219,9 @@ export type Database = {
           duration_minutes: number | null
           exercise_id: string | null
           id: string
+          notes: string | null
           reps: number
+          rest_time_seconds: number | null
           sets: number
           weight: number | null
           workout_id: string | null
@@ -217,7 +231,9 @@ export type Database = {
           duration_minutes?: number | null
           exercise_id?: string | null
           id?: string
+          notes?: string | null
           reps: number
+          rest_time_seconds?: number | null
           sets: number
           weight?: number | null
           workout_id?: string | null
@@ -227,7 +243,9 @@ export type Database = {
           duration_minutes?: number | null
           exercise_id?: string | null
           id?: string
+          notes?: string | null
           reps?: number
+          rest_time_seconds?: number | null
           sets?: number
           weight?: number | null
           workout_id?: string | null
@@ -253,22 +271,28 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          duration: string | null
           id: string
           name: string
+          notes: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           description?: string | null
+          duration?: string | null
           id?: string
           name: string
+          notes?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           description?: string | null
+          duration?: string | null
           id?: string
           name?: string
+          notes?: string | null
           user_id?: string
         }
         Relationships: []
@@ -400,25 +424,23 @@ export const Constants = {
   },
 } as const
 
-// Convenient type aliases for table types
-export type Exercise = Tables<'exercises'>
-export type ExerciseSet = Tables<'exercise_sets'>
-export type Profile = Tables<'profiles'>
-export type Routine = Tables<'routines'>
-export type RoutineExercise = Tables<'routine_exercises'>
-export type Workout = Tables<'workouts'>
-export type WorkoutExercise = Tables<'workout_exercises'>
+// Custom types for application use
+export type Exercise = Tables<'exercises'>;
+export type Routine = Tables<'routines'>;
+export type Workout = Tables<'workouts'>;
+export type RoutineExercise = Tables<'routine_exercises'>;
+export type WorkoutExercise = Tables<'workout_exercises'>;
+export type ExerciseSet = Tables<'exercise_sets'>;
 
-// Extended types with relationships
-export type RoutineWithExercises = Routine & {
-  routine_exercises: (RoutineExercise & {
-    exercise: Exercise
-  })[]
-}
+export type RoutineWithExercises = Tables<'routines'> & {
+  routine_exercises?: (Tables<'routine_exercises'> & {
+    exercise?: Exercise;
+    exercise_sets?: Tables<'exercise_sets'>[];
+  })[];
+};
 
-export type WorkoutWithExercises = Workout & {
-  workout_exercises: (WorkoutExercise & {
-    exercise: Exercise
-    exercise_sets: ExerciseSet[]
-  })[]
-}
+export type WorkoutWithExercises = Tables<'workouts'> & {
+  workout_exercises?: (Tables<'workout_exercises'> & {
+    exercise?: Exercise;
+  })[];
+};

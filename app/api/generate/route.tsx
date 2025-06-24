@@ -59,7 +59,7 @@ When creating routines, respond with a JSON structure containing:
   "routines": [
     {
       "name": "Routine Name",
-      "description": "Brief description of the routine with tabular workout summary:\n\n| Exercise | Sets | Reps | Rest | Notes |\n|----------|------|------|------|-------|\n| Exercise 1 | 3 | 10-12 | 60s | Form tips |\n| Exercise 2 | 3 | 8-10 | 90s | Modifications |",
+      "description": "Brief description of the routine's purpose, target goals, and what makes it effective",
       "exercises": [
         {
           "exercise_id": "uuid",
@@ -70,15 +70,24 @@ When creating routines, respond with a JSON structure containing:
           ],
           "order_index": 0,
           "rest_seconds": 60,
-          "notes": "Form tips or modifications in tabular format when helpful"
+          "notes": "Form tips, modifications, or technique cues"
         }
       ]
     }
   ],
-  "explanation": "Brief explanation with tabular comparison of routines:\n\n| Routine | Focus | Duration | Difficulty |\n|---------|-------|----------|------------|\n| Routine 1 | Strength | 45min | Beginner |\n| Routine 2 | Cardio | 30min | Intermediate |"
+  "explanation": "Brief explanation of the routine's benefits and how it fits the user's request"
 }
 
-Always provide practical, safe, and effective routines with tabular summaries for easy comparison.`;
+CRITICAL REQUIREMENTS:
+- ALWAYS use INTEGER numbers for "reps" field (e.g., 5, 8, 10, 12, 15, 20)
+- NEVER use text like "as many as possible", "to failure", or "max reps"
+- For exercises that are typically done to failure, use a reasonable target number (e.g., 15 for push-ups)
+- For time-based exercises, set reps to null and use duration_minutes instead
+- ALWAYS include "rest_seconds" field (typically 30-90 seconds between sets)
+- ALWAYS include "notes" field with helpful form tips, modifications, or technique cues for each exercise
+- NEVER leave "notes" or "rest_seconds" fields empty or undefined
+
+Always provide practical, safe, and effective routines with clear descriptions.`;
 
 // Simple timeout wrapper for AI calls only
 const withAITimeout = (promise: Promise<any>, timeoutMs: number): Promise<any> => {
@@ -209,6 +218,8 @@ Please create 1 comprehensive workout routine using these exercises. Make sure t
       // Add timeout to AI generation - increased to 60 seconds
       const result_ai = await withAITimeout(model.generateContent(enhancedPrompt), 60000);
       const text = await result_ai.response.text();
+      
+      console.log('🤖 Debug - Raw AI response:', text.substring(0, 1000) + '...');
 
       try {
         // Try multiple parsing strategies
@@ -229,10 +240,28 @@ Please create 1 comprehensive workout routine using these exercises. Make sure t
         }
         
         if (routineData && routineData.routines) {
-          console.log('Successfully parsed routines:', routineData.routines?.length);
+          console.log('🤖 Debug - Parsed routine data before sanitization:', JSON.stringify(routineData, null, 2));
+          
+          // Validate and sanitize reps to ensure they are integers, and ensure notes/rest_seconds exist
+          const sanitizedRoutines = routineData.routines.map((routine: any) => ({
+            ...routine,
+            exercises: routine.exercises.map((exercise: any) => ({
+              ...exercise,
+              // Ensure notes and rest_seconds are always present
+              notes: exercise.notes || "Focus on proper form and controlled movement",
+              rest_seconds: exercise.rest_seconds || 60,
+              sets: exercise.sets.map((set: any) => ({
+                ...set,
+                reps: sanitizeReps(set.reps)
+              }))
+            }))
+          }));
+
+          console.log('🤖 Debug - Final sanitized routines being returned:', JSON.stringify(sanitizedRoutines, null, 2));
+          console.log('Successfully parsed routines:', sanitizedRoutines.length);
           return new Response(JSON.stringify({ 
             response: text,
-            routines: routineData.routines,
+            routines: sanitizedRoutines,
             explanation: routineData.explanation,
             isRoutineGeneration: true
           }), { 
@@ -298,6 +327,41 @@ Please create 1 comprehensive workout routine using these exercises. Make sure t
       headers: { 'Content-Type': 'application/json' }
     });
   }
+}
+
+// Helper function to sanitize reps to ensure they are integers
+function sanitizeReps(reps: any): number | null {
+  // If reps is already null, keep it null (for time-based exercises)
+  if (reps === null || reps === undefined) {
+    return null;
+  }
+  
+  // If it's already a number, ensure it's an integer
+  if (typeof reps === 'number') {
+    return Math.max(1, Math.round(reps));
+  }
+  
+  // If it's a string, try to parse it
+  if (typeof reps === 'string') {
+    // Handle common text patterns and convert to reasonable numbers
+    const lowerReps = reps.toLowerCase();
+    if (lowerReps.includes('failure') || lowerReps.includes('max') || lowerReps.includes('as many as possible')) {
+      return 15; // Default for failure exercises
+    }
+    
+    // Try to extract number from string
+    const numMatch = reps.match(/\d+/);
+    if (numMatch) {
+      const parsedNum = parseInt(numMatch[0]);
+      return Math.max(1, parsedNum);
+    }
+    
+    // Default fallback
+    return 10;
+  }
+  
+  // Final fallback
+  return 10;
 }
 
 // Helper function to calculate age from birthday

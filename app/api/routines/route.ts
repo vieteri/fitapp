@@ -135,10 +135,15 @@ export async function POST(request: Request) {
         reps: defaultReps,
         weight: defaultWeight,
         duration_minutes: defaultDuration,
-        order_index: ex.order_index || i
+        order_index: ex.order_index || i,
+        rest_time_seconds: ex.rest_seconds || 60, // Include rest time
+        notes: ex.notes || null // Include exercise notes
       };
       
-      console.log(`Adding routine exercise:`, routineExercise);
+      console.log(`🔧 Debug - Processing exercise ${i}:`, ex);
+      console.log(`🔧 Debug - Created routine exercise:`, routineExercise);
+      console.log(`🔧 Debug - Notes value:`, ex.notes, 'Type:', typeof ex.notes);
+      console.log(`🔧 Debug - Rest seconds value:`, ex.rest_seconds, 'Type:', typeof ex.rest_seconds);
       routineExercisesData.push(routineExercise);
     }
 
@@ -166,7 +171,17 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('Created routine exercises:', routineExercises);
+    console.log('✅ Created routine exercises:', routineExercises);
+    
+    // Debug: Let's verify what was actually inserted
+    const { data: insertedExercises, error: verifyError } = await supabase
+      .from('routine_exercises')
+      .select('*')
+      .eq('routine_id', routine.id);
+    
+    if (!verifyError) {
+      console.log('🔍 Debug - Verification of inserted routine exercises with notes:', JSON.stringify(insertedExercises, null, 2));
+    }
 
     // Create individual exercise sets
     for (let i = 0; i < body.exercises.length; i++) {

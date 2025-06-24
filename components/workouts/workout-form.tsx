@@ -24,6 +24,7 @@ interface WorkoutFormProps {
 export function WorkoutForm({ initialData, onSuccess }: WorkoutFormProps) {
   const [name, setName] = useState(initialData.name);
   const [description, setDescription] = useState(initialData.description || '');
+  const [duration, setDuration] = useState(initialData.duration || '');
   const [exercises, setExercises] = useState<{
     id?: string;
     exercise_id: string;
@@ -31,7 +32,7 @@ export function WorkoutForm({ initialData, onSuccess }: WorkoutFormProps) {
     reps: number;
     weight: number | null;
     exercise?: Exercise | null;
-  }[]>(initialData.workout_exercises?.map(ex => ({
+  }[]>(initialData.workout_exercises?.map((ex: any) => ({
     id: ex.id,
     exercise_id: ex.exercise_id || '',
     sets: ex.sets,
@@ -78,6 +79,7 @@ export function WorkoutForm({ initialData, onSuccess }: WorkoutFormProps) {
         body: JSON.stringify({
           name,
           description: description || null,
+          duration: duration || null,
           exercises: exercises.map(ex => ({
             id: ex.id, // Include ID for existing exercises
             exercise_id: ex.exercise_id,
@@ -160,6 +162,19 @@ export function WorkoutForm({ initialData, onSuccess }: WorkoutFormProps) {
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="duration">Workout Duration (optional)</Label>
+          <Input
+            id="duration"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            placeholder="e.g., 1:30:00 or 90 or 5400"
+          />
+          <div className="text-xs text-muted-foreground">
+            Format: HH:MM:SS, minutes, or seconds
+          </div>
         </div>
 
         <div className="space-y-4">

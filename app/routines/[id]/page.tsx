@@ -27,6 +27,19 @@ export default function RoutinePage({ params }: { params: Promise<{ id: string }
           throw new Error('Failed to fetch routine');
         }
         const data = await response.json();
+        console.log('🔍 Debug - Fetched routine data:', data.routine);
+        console.log('🔍 Debug - Routine exercises:', data.routine?.routine_exercises);
+        if (data.routine?.routine_exercises) {
+          data.routine.routine_exercises.forEach((exercise: any, index: number) => {
+            console.log(`🔍 Debug - Exercise ${index}:`, {
+              name: exercise.exercise?.name,
+              notes: exercise.notes,
+              rest_time_seconds: exercise.rest_time_seconds,
+              hasNotes: !!exercise.notes,
+              notesValue: exercise.notes
+            });
+          });
+        }
         setRoutine(data.routine);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -97,7 +110,7 @@ export default function RoutinePage({ params }: { params: Promise<{ id: string }
         />
 
         <ExerciseList 
-          exercises={routine.routine_exercises}
+          exercises={routine.routine_exercises || []}
         />
       </div>
     </div>

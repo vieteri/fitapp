@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, Trash2, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import type { Exercise } from '@/types/supabase-types';
+import type { Tables } from '@/types/supabase-types';
+import { isCardioExercise as isCardio, getSetLabel, isDistanceBasedCardio } from "@/utils/utils";
+
+type Exercise = Tables<'exercises'>;
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 interface ExerciseSet {
@@ -20,6 +23,8 @@ interface ExerciseSet {
 interface ExerciseWithSets {
   exercise: Exercise;
   sets: ExerciseSet[];
+  notes?: string;
+  rest_time_seconds?: number;
 }
 
 function NewWorkoutForm() {
@@ -30,6 +35,7 @@ function NewWorkoutForm() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExercises, setSelectedExercises] = useState<ExerciseWithSets[]>([]);
   const [workoutName, setWorkoutName] = useState('');
+  const [workoutDuration, setWorkoutDuration] = useState('');
   const [loadingRoutine, setLoadingRoutine] = useState(false);
 
   // Check for routine parameters and prefill
@@ -70,7 +76,12 @@ function NewWorkoutForm() {
                 duration_minutes: re.duration_minutes
               }));
 
-              return { exercise, sets };
+              return { 
+                exercise, 
+                sets,
+                notes: re.notes,
+                rest_time_seconds: re.rest_time_seconds || (re.duration_minutes ? re.duration_minutes * 60 : 60)
+              };
             }).filter(Boolean);
 
             setSelectedExercises(prefillExercises);
@@ -112,13 +123,16 @@ function NewWorkoutForm() {
             minute: '2-digit',
             hour12: true
           })}`,
+          duration: workoutDuration || null,
           exercises: selectedExercises.flatMap((ex, exerciseIndex) => 
             ex.sets.map((set, setIndex) => ({
               exercise_id: ex.exercise.id,
               sets: 1,
               reps: set.reps,
               weight: set.weight,
-              duration_minutes: set.duration_minutes
+              duration_minutes: set.duration_minutes,
+              notes: ex.notes,
+              rest_time_seconds: ex.rest_time_seconds
             }))
           )
         })
@@ -199,6 +213,22 @@ function NewWorkoutForm() {
     }));
   };
 
+  const updateExerciseNotes = (exerciseIndex: number, notes: string) => {
+    setSelectedExercises(prev => prev.map((ex, i) => {
+      if (i !== exerciseIndex) return ex;
+      return { ...ex, notes };
+    }));
+  };
+
+  const updateExerciseRestTime = (exerciseIndex: number, restTime: number) => {
+    setSelectedExercises(prev => prev.map((ex, i) => {
+      if (i !== exerciseIndex) return ex;
+      return { ...ex, rest_time_seconds: restTime };
+    }));
+  };
+
+
+
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="flex items-center gap-4 mb-6">
@@ -219,18 +249,36 @@ function NewWorkoutForm() {
                 Loading routine exercises...
               </div>
             )}
-            <div>
-              <label htmlFor="workoutName" className="block text-sm font-medium text-muted-foreground mb-2">
-                Workout Name
-              </label>
-              <input
-                id="workoutName"
-                type="text"
-                className="w-full px-3 py-2 border rounded-md"
-                value={workoutName}
-                onChange={(e) => setWorkoutName(e.target.value)}
-                placeholder="Enter workout name (optional)"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="workoutName" className="block text-sm font-medium text-muted-foreground mb-2">
+                  Workout Name
+                </label>
+                <input
+                  id="workoutName"
+                  type="text"
+                  className="w-full px-3 py-2 border rounded-md"
+                  value={workoutName}
+                  onChange={(e) => setWorkoutName(e.target.value)}
+                  placeholder="Enter workout name (optional)"
+                />
+              </div>
+              <div>
+                <label htmlFor="workoutDuration" className="block text-sm font-medium text-muted-foreground mb-2">
+                  Workout Duration
+                </label>
+                <input
+                  id="workoutDuration"
+                  type="text"
+                  className="w-full px-3 py-2 border rounded-md"
+                  value={workoutDuration}
+                  onChange={(e) => setWorkoutDuration(e.target.value)}
+                  placeholder="e.g., 1:30:00 or 90 or 5400"
+                />
+                <div className="text-xs text-muted-foreground mt-1">
+                  Format: HH:MM:SS, minutes, or seconds
+                </div>
+              </div>
             </div>
           </div>
         </Card>
@@ -287,41 +335,99 @@ function NewWorkoutForm() {
                     {ex.sets.map((set, setIndex) => (
                       <div key={setIndex} className="flex items-center gap-4">
                         <div className="w-16 text-sm text-muted-foreground">
-                          Set {setIndex + 1}
+                          {isCardio(ex.exercise) ? 
+                            (isDistanceBasedCardio(ex.exercise.name) ? `${setIndex + 1} km` : `Duration ${setIndex + 1}`) : 
+                            `Set ${setIndex + 1}`
+                          }
                         </div>
-                        <div className="grid grid-cols-3 gap-4 flex-1">
-                          <div>
-                            <input
-                              type="number"
-                              className="w-full px-3 py-1 border rounded-md"
-                              value={set.reps}
-                              onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'reps', e.target.value)}
-                              min={1}
-                              placeholder="Reps"
-                            />
+                        {isCardio(ex.exercise) ? (
+                          isDistanceBasedCardio(ex.exercise.name) ? (
+                            // Distance-Based Cardio Layout: Distance + Duration
+                            <div className="grid grid-cols-2 gap-4 flex-1">
+                              <div>
+                                <input
+                                  type="number"
+                                  className="w-full px-3 py-1 border rounded-md"
+                                  value={set.duration_minutes || ''}
+                                  onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'duration_minutes', e.target.value)}
+                                  min={0}
+                                  step={0.5}
+                                  placeholder="Distance (km)"
+                                />
+                              </div>
+                              <div>
+                                <input
+                                  type="number"
+                                  className="w-full px-3 py-1 border rounded-md"
+                                  value={set.reps || ''}
+                                  onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'reps', e.target.value)}
+                                  min={0}
+                                  placeholder="Duration (min)"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            // Time-Based Cardio Layout: Duration focused
+                            <div className="grid grid-cols-2 gap-4 flex-1">
+                              <div>
+                                <input
+                                  type="number"
+                                  className="w-full px-3 py-1 border rounded-md"
+                                  value={set.duration_minutes || ''}
+                                  onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'duration_minutes', e.target.value)}
+                                  min={0}
+                                  step={0.5}
+                                  placeholder="Duration (min)"
+                                />
+                              </div>
+                              <div>
+                                <input
+                                  type="number"
+                                  className="w-full px-3 py-1 border rounded-md"
+                                  value={set.reps || ''}
+                                  onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'reps', e.target.value)}
+                                  min={0}
+                                  placeholder="Reps (optional)"
+                                />
+                              </div>
+                            </div>
+                          )
+                        ) : (
+                          // Strength Exercise Layout: Reps/Weight focused
+                          <div className="grid grid-cols-3 gap-4 flex-1">
+                            <div>
+                              <input
+                                type="number"
+                                className="w-full px-3 py-1 border rounded-md"
+                                value={set.reps}
+                                onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'reps', e.target.value)}
+                                min={1}
+                                placeholder="Reps"
+                              />
+                            </div>
+                            <div>
+                              <input
+                                type="number"
+                                className="w-full px-3 py-1 border rounded-md"
+                                value={set.weight || ''}
+                                onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'weight', e.target.value)}
+                                min={0}
+                                step={0.5}
+                                placeholder="Weight (kg)"
+                              />
+                            </div>
+                            <div>
+                              <input
+                                type="number"
+                                className="w-full px-3 py-1 border rounded-md"
+                                value={set.duration_minutes || ''}
+                                onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'duration_minutes', e.target.value)}
+                                min={0}
+                                placeholder="Duration (min)"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <input
-                              type="number"
-                              className="w-full px-3 py-1 border rounded-md"
-                              value={set.weight || ''}
-                              onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'weight', e.target.value)}
-                              min={0}
-                              step={0.5}
-                              placeholder="Weight (kg)"
-                            />
-                          </div>
-                          <div>
-                            <input
-                              type="number"
-                              className="w-full px-3 py-1 border rounded-md"
-                              value={set.duration_minutes || ''}
-                              onChange={(e) => updateSetDetails(exerciseIndex, setIndex, 'duration_minutes', e.target.value)}
-                              min={0}
-                              placeholder="Duration (min)"
-                            />
-                          </div>
-                        </div>
+                        )}
                         {ex.sets.length > 1 && (
                           <Button
                             type="button"
@@ -334,6 +440,38 @@ function NewWorkoutForm() {
                         )}
                       </div>
                     ))}
+                  </div>
+
+                  {/* Rest Time and Notes Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">
+                        Rest Time (seconds)
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 border rounded-md"
+                        value={ex.rest_time_seconds || ''}
+                        onChange={(e) => updateExerciseRestTime(exerciseIndex, parseInt(e.target.value) || 0)}
+                        min={0}
+                        placeholder="60"
+                      />
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {ex.rest_time_seconds ? `${Math.floor(ex.rest_time_seconds / 60)}:${(ex.rest_time_seconds % 60).toString().padStart(2, '0')} (mm:ss)` : ''}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">
+                        Notes
+                      </label>
+                      <textarea
+                        className="w-full px-3 py-2 border rounded-md resize-none"
+                        rows={2}
+                        value={ex.notes || ''}
+                        onChange={(e) => updateExerciseNotes(exerciseIndex, e.target.value)}
+                        placeholder="Form tips, modifications, etc."
+                      />
+                    </div>
                   </div>
                 </div>
               </Card>
