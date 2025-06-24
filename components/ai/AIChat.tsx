@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Send, Bot, User, Loader2, Sparkles, Copy, CheckCircle, Dumbbell, Clock, Target, Save, Eye, Plus } from "lucide-react";
+import { Send, Bot, User, Loader2, Sparkles, Copy, CheckCircle, Dumbbell, Clock, Target, Save, Eye, Plus, ChevronDown, ChevronUp, Bug, Edit3, MessageSquare } from "lucide-react";
 import { getAuthToken, authFetch } from "@/app/client-actions";
 import { useAuth } from "@/context/auth-context";
 import { TableRenderer } from "./table-renderer";
+import { isCardioExercise, getSetLabel, isDistanceBasedCardio } from "@/utils/utils";
 
 interface ExerciseSet {
   reps: number;
@@ -39,6 +40,7 @@ interface Message {
   isRoutineGeneration?: boolean;
   routines?: GeneratedRoutine[];
   explanation?: string;
+  rawResponse?: any; // Store the full API response for debugging
 }
 
 export default function AIChat() {
@@ -47,6 +49,9 @@ export default function AIChat() {
   const [loading, setLoading] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [savingRoutine, setSavingRoutine] = useState<string | null>(null);
+  const [expandedDebug, setExpandedDebug] = useState<string | null>(null);
+  const [editingRoutineNote, setEditingRoutineNote] = useState<string | null>(null);
+  const [routineNotes, setRoutineNotes] = useState<{[key: string]: string}>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
@@ -144,6 +149,14 @@ export default function AIChat() {
       console.log('Is routine generation:', data.isRoutineGeneration);
       console.log('Response error:', data.error);
       console.log('Response content sample:', data.response?.substring(0, 200));
+      
+      // Check if routines have notes
+      if (data.routines && data.routines.length > 0) {
+        console.log('🔍 First routine from API:', JSON.stringify(data.routines[0], null, 2));
+        console.log('🔍 First exercise from API:', JSON.stringify(data.routines[0].exercises[0], null, 2));
+        console.log('🔍 First exercise notes:', data.routines[0].exercises[0]?.notes);
+        console.log('🔍 First exercise rest_seconds:', data.routines[0].exercises[0]?.rest_seconds);
+      }
       console.log('========================');
 
       const aiMessage: Message = {
@@ -153,8 +166,14 @@ export default function AIChat() {
         timestamp: new Date(),
         isRoutineGeneration: data.isRoutineGeneration,
         routines: data.routines,
-        explanation: data.explanation
+        explanation: data.explanation,
+        rawResponse: data // Store full response for debugging
       };
+
+      // If this is a new routine generation, clear old routine generation messages to avoid confusion
+      if (data.isRoutineGeneration && data.routines && data.routines.length > 0) {
+        setMessages(prev => prev.filter(msg => !msg.isRoutineGeneration));
+      }
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
@@ -188,9 +207,12 @@ export default function AIChat() {
     }
   };
 
-  const saveRoutine = async (routine: GeneratedRoutine) => {
+  const saveRoutine = async (routine: GeneratedRoutine, customNotes?: string) => {
     const routineId = `${routine.name}-${Date.now()}`;
     setSavingRoutine(routineId);
+
+    console.log('🚨 CRITICAL DEBUG - Routine object passed to saveRoutine:', JSON.stringify(routine, null, 2));
+    console.log('🚨 CRITICAL DEBUG - First exercise from routine:', JSON.stringify(routine.exercises[0], null, 2));
 
     try {
       if (!isUserAuthenticated()) {
@@ -198,15 +220,31 @@ export default function AIChat() {
         return;
       }
 
+      // Combine original description with custom notes
+      const finalDescription = customNotes 
+        ? `${routine.description}\n\n**Personal Notes:** ${customNotes}`
+        : routine.description;
+
       const routineData = {
         name: routine.name,
-        description: routine.description,
-        exercises: routine.exercises.map(ex => ({
-          exercise_id: ex.exercise_id,
-          sets: ex.sets,
-          order_index: ex.order_index
-        }))
+        description: finalDescription,
+        exercises: routine.exercises.map(ex => {
+          console.log('🔍 Processing exercise for save:', ex.exercise_name || ex.exercise_id, 'Notes:', ex.notes, 'Rest:', ex.rest_seconds);
+          return {
+            exercise_id: ex.exercise_id,
+            sets: ex.sets,
+            order_index: ex.order_index,
+            rest_seconds: ex.rest_seconds || 60, // Default to 60 seconds if not specified
+            notes: ex.notes || "Focus on proper form and controlled movement" // Always include notes with fallback
+          };
+        })
       };
+
+      console.log('🚀 Debug - Saving routine data:', JSON.stringify(routineData, null, 2));
+      console.log('🚀 Debug - Original routine from AI:', JSON.stringify(routine, null, 2));
+      console.log('🚀 Debug - Routine name being saved:', routine.name);
+      console.log('🚀 Debug - Number of exercises:', routine.exercises.length);
+      console.log('🚀 Debug - First exercise details:', JSON.stringify(routine.exercises[0], null, 2));
 
       const res = await authFetch('/api/routines', {
         method: 'POST',
@@ -238,70 +276,171 @@ export default function AIChat() {
     });
   };
 
-  const RoutinePreview = ({ routine, onSave }: { routine: GeneratedRoutine; onSave: () => void }) => (
-    <Card className="mt-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Dumbbell className="h-5 w-5 text-blue-600" />
-            <CardTitle className="text-lg">{routine.name}</CardTitle>
-          </div>
-          <Button
-            onClick={onSave}
-            disabled={savingRoutine === `${routine.name}-${Date.now()}`}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            size="sm"
-          >
-            {savingRoutine === `${routine.name}-${Date.now()}` ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-            ) : (
-              <Save className="h-4 w-4 mr-1" />
-            )}
-            Save Routine
-          </Button>
-        </div>
-        <div className="text-sm text-muted-foreground">
-          <TableRenderer content={routine.description} />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {routine.exercises.map((exercise, idx) => (
-            <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className="text-xs">
-                    #{exercise.order_index + 1}
-                  </Badge>
-                  <span className="font-medium">{exercise.exercise_name}</span>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Target className="h-3 w-3" />
-                    <span>{exercise.sets.length} sets</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>Reps: {exercise.sets.map(s => s.reps).join(', ')}</span>
-                  </div>
-                  {exercise.rest_seconds && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{exercise.rest_seconds}s rest</span>
-                    </div>
-                  )}
-                </div>
-                {exercise.notes && (
-                  <div className="text-xs text-muted-foreground mt-1 italic">
-                    <TableRenderer content={exercise.notes} />
-                  </div>
-                )}
-              </div>
+  const RoutinePreview = ({ routine, onSave }: { routine: GeneratedRoutine; onSave: (notes?: string) => void }) => {
+    const routineKey = `${routine.name}-${Date.now()}`;
+    const isEditing = editingRoutineNote === routineKey;
+    const currentNotes = routineNotes[routineKey] || '';
+    
+    console.log('🔄 RoutinePreview - Routine received:', JSON.stringify(routine, null, 2));
+    console.log('🔄 RoutinePreview - First exercise notes:', routine.exercises[0]?.notes);
+    console.log('🔄 RoutinePreview - First exercise rest_seconds:', routine.exercises[0]?.rest_seconds);
+    
+    // Simple cardio detection based on exercise names
+    const isCardioByName = (exerciseName: string): boolean => {
+      const cardioKeywords = ['running', 'cycling', 'rowing', 'jump rope', 'burpees', 'mountain climbers', 'jumping jacks', 'cardio', 'treadmill', 'bike', 'elliptical'];
+      return cardioKeywords.some(keyword => exerciseName.toLowerCase().includes(keyword));
+    };
+    
+    return (
+      <Card className="mt-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Dumbbell className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-lg">{routine.name}</CardTitle>
+              {routine.exercises.some(ex => ex.notes || ex.rest_seconds) && (
+                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  Enhanced
+                </Badge>
+              )}
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditingRoutineNote(isEditing ? null : routineKey);
+                }}
+                className="text-blue-600 border-blue-200 hover:bg-blue-100"
+              >
+                <Edit3 className="h-4 w-4 mr-1" />
+                {isEditing ? 'Cancel' : 'Add Notes'}
+              </Button>
+              <Button
+                onClick={() => onSave(currentNotes)}
+                disabled={savingRoutine === routineKey}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="sm"
+              >
+                {savingRoutine === routineKey ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                ) : (
+                  <Save className="h-4 w-4 mr-1" />
+                )}
+                Save Routine
+              </Button>
+            </div>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            <TableRenderer content={routine.description} />
+          </div>
+          
+          {/* Notes Section */}
+          {isEditing && (
+            <div className="mt-4 p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Add notes about this routine:
+              </label>
+              <Textarea
+                value={currentNotes}
+                onChange={(e) => setRoutineNotes(prev => ({ ...prev, [routineKey]: e.target.value }))}
+                placeholder="e.g., Focus on form, adjust weights based on strength level, good for beginners..."
+                className="min-h-[80px] text-sm"
+              />
+            </div>
+          )}
+          
+          {currentNotes && !isEditing && (
+            <div className="mt-4 p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes:</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{currentNotes}</div>
+            </div>
+          )}
+        </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">#</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Exercise</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Sets/Rounds</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Reps</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Rest</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {routine.exercises.map((exercise, idx) => (
+                <tr key={idx} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <td className="py-3 px-3">
+                    <Badge variant="outline" className="text-xs">
+                      {exercise.order_index + 1}
+                    </Badge>
+                  </td>
+                  <td className="py-3 px-3 font-medium text-gray-900 dark:text-gray-100">
+                    {exercise.exercise_name}
+                  </td>
+                  <td className="py-3 px-3 text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-1">
+                      <Target className="h-3 w-3" />
+                      <span>{exercise.sets.length} {isCardioByName(exercise.exercise_name) ? 
+                        (isDistanceBasedCardio(exercise.exercise_name) ? 'km' : 'durations') : 'sets'}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-3 text-gray-600 dark:text-gray-400">
+                                          {isCardioByName(exercise.exercise_name) ? (
+                        isDistanceBasedCardio(exercise.exercise_name) ? (
+                          // Distance-based cardio: show distance first, then duration
+                          exercise.sets.map(s => {
+                            const parts = [];
+                            if (s.duration_minutes) parts.push(`${s.duration_minutes}km`);
+                            if (s.reps) parts.push(`${s.reps}min`);
+                            return parts.join(' / ') || `${s.reps || 0} reps`;
+                          }).join(', ')
+                        ) : (
+                          // Time-based cardio: show duration first, then reps
+                          exercise.sets.map(s => {
+                            const parts = [];
+                            if (s.duration_minutes) parts.push(`${s.duration_minutes}min`);
+                            if (s.reps) parts.push(`${s.reps} reps`);
+                            return parts.join(' / ') || `${s.reps || 0} reps`;
+                          }).join(', ')
+                        )
+                      ) : (
+                        // For strength, show reps normally
+                        exercise.sets.map(s => s.reps).join(', ')
+                      )}
+                  </td>
+                  <td className="py-3 px-3 text-gray-600 dark:text-gray-400">
+                    {exercise.rest_seconds ? (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{exercise.rest_seconds}s</span>
+                      </div>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400 max-w-48">
+                    {exercise.notes ? (
+                      <div className="truncate">
+                        <TableRenderer content={exercise.notes} />
+                      </div>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="flex flex-col h-[600px] bg-gray-50 dark:bg-gray-900/50">
@@ -413,21 +552,48 @@ export default function AIChat() {
                         <Sparkles className="h-3 w-3" />
                         <span>{message.isRoutineGeneration ? 'AI Routine Generator' : 'AI Response'}</span>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        onClick={() => copyToClipboard(message.content, message.id)}
-                      >
-                        {copiedId === message.id ? (
-                          <CheckCircle className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => setExpandedDebug(expandedDebug === message.id ? null : message.id)}
+                          title="Toggle debug view"
+                        >
+                          <Bug className="h-3 w-3" />
+                          {expandedDebug === message.id ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => copyToClipboard(message.content, message.id)}
+                        >
+                          {copiedId === message.id ? (
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </Card>
+                
+                {/* Debug View */}
+                {!message.isUser && expandedDebug === message.id && message.rawResponse && (
+                  <Card className="mt-2 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Bug className="h-4 w-4 text-orange-500" />
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Debug: Full AI Response</span>
+                      </div>
+                      <pre className="text-xs text-gray-600 dark:text-gray-400 overflow-x-auto bg-gray-50 dark:bg-gray-900 p-3 rounded border">
+                        {JSON.stringify(message.rawResponse, null, 2)}
+                      </pre>
+                    </CardContent>
+                  </Card>
+                )}
                 
                 {/* Routine Previews */}
                 {message.routines && message.routines.length > 0 && (
@@ -445,7 +611,7 @@ export default function AIChat() {
                       <RoutinePreview 
                         key={idx} 
                         routine={routine} 
-                        onSave={() => saveRoutine(routine)}
+                        onSave={(notes) => saveRoutine(routine, notes)}
                       />
                     ))}
                   </div>

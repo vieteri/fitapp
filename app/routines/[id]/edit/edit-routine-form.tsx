@@ -37,17 +37,19 @@ export default function EditRoutineForm({ initialData, routineId }: EditRoutineF
   const [description, setDescription] = useState(initialData.routine.description || "");
   const [selectedExercises, setSelectedExercises] = useState<ExerciseWithSets[]>(
     Object.values(
-      (initialData.routine.routine_exercises || []).reduce((groups: Record<number, ExerciseWithSets>, re) => {
-        groups[re.order_index] = {
-          exercise: re.exercise,
-          sets: [{
-            reps: re.reps,
-            weight: re.weight || undefined,
-            duration_minutes: re.duration_minutes || undefined
-          }]
-        };
-        return groups;
-      }, {})
+      (initialData.routine.routine_exercises || [])
+        .filter(re => re.exercise) // Filter out exercises without exercise data
+        .reduce((groups: Record<number, ExerciseWithSets>, re) => {
+          groups[re.order_index] = {
+            exercise: re.exercise!,
+            sets: [{
+              reps: re.reps,
+              weight: re.weight || undefined,
+              duration_minutes: re.duration_minutes || undefined
+            }]
+          };
+          return groups;
+        }, {})
     )
   );
 

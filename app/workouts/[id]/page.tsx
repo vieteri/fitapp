@@ -7,17 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Trash2, Dumbbell, Timer, Calendar, TrendingUp } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
-import type { WorkoutWithExercises, WorkoutExercise, ExerciseSet } from '@/types/supabase-types';
+import { formatDuration } from '@/utils/format';
+import type { Tables, WorkoutWithExercises } from '@/types/supabase-types';
+
+type Workout = Tables<'workouts'>;
+type WorkoutExercise = Tables<'workout_exercises'>;
+type Exercise = Tables<'exercises'>;
 
 interface WorkoutPageProps {
   params: Promise<{ id: string }>;
 }
 
 // Group workout exercises by exercise type and collect their sets
-function groupExercisesByType(workoutExercises: (WorkoutExercise & { exercise: any })[]) {
+function groupExercisesByType(workoutExercises: (WorkoutExercise & { exercise?: any })[]) {
   const grouped = new Map<string, {
     exercise: any;
-    sets: (WorkoutExercise & { exercise: any; setNumber: number })[];
+    sets: (WorkoutExercise & { exercise?: any; setNumber: number })[];
     totalWeight: number;
     totalReps: number;
   }>();
@@ -171,7 +176,7 @@ export default function WorkoutPage({ params }: WorkoutPageProps) {
           </div>
 
           {/* Workout Stats */}
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+          <div className={`grid gap-4 pt-4 border-t ${workout.duration ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">{totalExercises}</div>
               <div className="text-sm text-muted-foreground">Exercises</div>
@@ -184,6 +189,17 @@ export default function WorkoutPage({ params }: WorkoutPageProps) {
               <div className="text-2xl font-bold text-green-600">{totalVolume.toFixed(0)}</div>
               <div className="text-sm text-muted-foreground">Volume (kg×reps)</div>
             </div>
+            {workout.duration && (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  <Timer className="h-5 w-5 inline mr-1" />
+                </div>
+                <div className="text-sm text-muted-foreground">Duration</div>
+                <div className="text-xs text-orange-600 mt-1 font-medium">
+                  {formatDuration(workout.duration)}
+                </div>
+              </div>
+            )}
           </div>
         </Card>
 

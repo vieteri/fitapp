@@ -31,6 +31,7 @@ export async function POST(request: Request) {
       .insert({
         name: workoutName,
         description: body.description,
+        duration: body.duration || null,
         user_id: user.id,
       })
       .select()
@@ -55,13 +56,17 @@ export async function POST(request: Request) {
             sets: number;
             weight?: number;
             duration_minutes?: number;
+            notes?: string;
+            rest_time_seconds?: number;
           }) => ({
             workout_id: workout.id,
             exercise_id: ex.exercise_id,
             sets: ex.sets,
             reps: ex.reps,
             weight: ex.weight || null,
-            duration_minutes: ex.duration_minutes || null
+            duration_minutes: ex.duration_minutes || null,
+            notes: ex.notes || null,
+            rest_time_seconds: ex.rest_time_seconds || null
           }))
         );
 

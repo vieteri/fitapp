@@ -13,12 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatDate } from "@/utils/format";
+import { formatDate, formatDuration } from "@/utils/format";
 
 type Workout = Tables<'workouts'> & {
   workout_exercises: (Tables<'workout_exercises'> & {
     exercise: Tables<'exercises'>
   })[];
+  duration?: string | null;
 };
 
 export function WorkoutList({ initialWorkouts }: { initialWorkouts: Workout[] }) {
@@ -76,6 +77,14 @@ export function WorkoutList({ initialWorkouts }: { initialWorkouts: Workout[] })
                     <time className="text-sm text-muted-foreground">
                       {formatDate(workout.created_at)}
                     </time>
+                    {workout.duration && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-sm text-orange-600 font-medium">
+                          {formatDuration(workout.duration)}
+                        </span>
+                      </>
+                    )}
                     {workout.description && (
                       <>
                         <span className="text-muted-foreground">•</span>
