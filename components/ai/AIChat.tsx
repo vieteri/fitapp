@@ -688,7 +688,7 @@ export default function AIChat() {
         <div className="text-xs sm:text-sm text-muted-foreground mt-2 text-center leading-relaxed">
           <span className="block sm:inline">Press Enter to send, Shift+Enter for new line</span>
           <span className="hidden sm:inline"> • </span>
-          <span className="block sm:inline">Try asking for "workout routines" to get structured plans!</span>
+          <span className="block sm:inline">Try asking for &quot;workout routines&quot; to get structured plans!</span>
         </div>
       </div>
     </div>
