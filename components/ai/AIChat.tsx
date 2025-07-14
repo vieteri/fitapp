@@ -294,45 +294,47 @@ export default function AIChat() {
     return (
       <Card className="mt-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Dumbbell className="h-5 w-5 text-blue-600" />
-              <CardTitle className="text-lg">{routine.name}</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Dumbbell className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+              <CardTitle className="text-base sm:text-lg">{routine.name}</CardTitle>
               {routine.exercises.some(ex => ex.notes || ex.rest_seconds) && (
-                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 text-xs">
                   <MessageSquare className="h-3 w-3 mr-1" />
                   Enhanced
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   setEditingRoutineNote(isEditing ? null : routineKey);
                 }}
-                className="text-blue-600 border-blue-200 hover:bg-blue-100"
+                className="text-blue-600 border-blue-200 hover:bg-blue-100 text-xs sm:text-sm"
               >
-                <Edit3 className="h-4 w-4 mr-1" />
-                {isEditing ? 'Cancel' : 'Add Notes'}
+                <Edit3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">{isEditing ? 'Cancel' : 'Add Notes'}</span>
+                <span className="sm:hidden">{isEditing ? 'Cancel' : 'Notes'}</span>
               </Button>
               <Button
                 onClick={() => onSave(currentNotes)}
                 disabled={savingRoutine === routineKey}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
                 size="sm"
               >
                 {savingRoutine === routineKey ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1" />
                 ) : (
-                  <Save className="h-4 w-4 mr-1" />
+                  <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 )}
-                Save Routine
+                <span className="hidden sm:inline">Save Routine</span>
+                <span className="sm:hidden">Save</span>
               </Button>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs sm:text-sm text-muted-foreground">
             <TableRenderer content={routine.description} />
           </div>
           
@@ -360,37 +362,45 @@ export default function AIChat() {
         </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">#</th>
-                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Exercise</th>
-                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Sets/Rounds</th>
-                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Reps</th>
-                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Rest</th>
-                <th className="text-left py-2 px-3 font-medium text-gray-900 dark:text-gray-100">Notes</th>
+                <th className="text-left py-2 px-1 sm:px-3 font-medium text-gray-900 dark:text-gray-100">#</th>
+                <th className="text-left py-2 px-1 sm:px-3 font-medium text-gray-900 dark:text-gray-100">Exercise</th>
+                <th className="text-left py-2 px-1 sm:px-3 font-medium text-gray-900 dark:text-gray-100">Sets</th>
+                <th className="text-left py-2 px-1 sm:px-3 font-medium text-gray-900 dark:text-gray-100">Reps</th>
+                <th className="text-left py-2 px-1 sm:px-3 font-medium text-gray-900 dark:text-gray-100">Rest</th>
+                <th className="text-left py-2 px-1 sm:px-3 font-medium text-gray-900 dark:text-gray-100 hidden sm:table-cell">Notes</th>
               </tr>
             </thead>
             <tbody>
               {routine.exercises.map((exercise, idx) => (
                 <tr key={idx} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <td className="py-3 px-3">
+                  <td className="py-2 sm:py-3 px-1 sm:px-3">
                     <Badge variant="outline" className="text-xs">
                       {exercise.order_index + 1}
                     </Badge>
                   </td>
-                  <td className="py-3 px-3 font-medium text-gray-900 dark:text-gray-100">
-                    {exercise.exercise_name}
-                  </td>
-                  <td className="py-3 px-3 text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <Target className="h-3 w-3" />
-                      <span>{exercise.sets.length} {isCardioByName(exercise.exercise_name) ? 
-                        (isDistanceBasedCardio(exercise.exercise_name) ? 'km' : 'durations') : 'sets'}</span>
+                  <td className="py-2 sm:py-3 px-1 sm:px-3 font-medium text-gray-900 dark:text-gray-100">
+                    <div className="leading-tight">
+                      {exercise.exercise_name}
+                      {/* Show notes on mobile in a condensed way */}
+                      {exercise.notes && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 sm:hidden">
+                          {exercise.notes.length > 30 ? `${exercise.notes.substring(0, 30)}...` : exercise.notes}
+                        </div>
+                      )}
                     </div>
                   </td>
-                  <td className="py-3 px-3 text-gray-600 dark:text-gray-400">
-                                          {isCardioByName(exercise.exercise_name) ? (
+                  <td className="py-2 sm:py-3 px-1 sm:px-3 text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-1">
+                      <Target className="h-3 w-3" />
+                      <span>{exercise.sets.length}</span>
+                    </div>
+                  </td>
+                  <td className="py-2 sm:py-3 px-1 sm:px-3 text-gray-600 dark:text-gray-400">
+                    <div className="leading-tight">
+                      {isCardioByName(exercise.exercise_name) ? (
                         isDistanceBasedCardio(exercise.exercise_name) ? (
                           // Distance-based cardio: show distance first, then duration
                           exercise.sets.map(s => {
@@ -412,18 +422,19 @@ export default function AIChat() {
                         // For strength, show reps normally
                         exercise.sets.map(s => s.reps).join(', ')
                       )}
+                    </div>
                   </td>
-                  <td className="py-3 px-3 text-gray-600 dark:text-gray-400">
+                  <td className="py-2 sm:py-3 px-1 sm:px-3 text-gray-600 dark:text-gray-400">
                     {exercise.rest_seconds ? (
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>{exercise.rest_seconds}s</span>
+                        <span className="text-xs">{exercise.rest_seconds}s</span>
                       </div>
                     ) : (
                       '-'
                     )}
                   </td>
-                  <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400 max-w-48">
+                  <td className="py-2 sm:py-3 px-1 sm:px-3 text-xs text-gray-500 dark:text-gray-400 max-w-48 hidden sm:table-cell">
                     {exercise.notes ? (
                       <div className="truncate">
                         <TableRenderer content={exercise.notes} />
@@ -443,24 +454,24 @@ export default function AIChat() {
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-gray-50 dark:bg-gray-900/50">
+    <div className="flex flex-col h-[600px] sm:h-[600px] h-[calc(100vh-8rem)] bg-gray-50 dark:bg-gray-900/50">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
         {messages.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
-              <Bot className="h-8 w-8 text-white" />
+          <div className="text-center py-8 sm:py-12">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Welcome to your AI Fitness Coach!
             </h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto px-4">
               I&apos;m here to help you with workouts, nutrition, form tips, and all your fitness questions. What would you like to know?
             </p>
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-2 justify-center px-4">
               <Badge 
                 variant="secondary" 
-                className={`cursor-pointer transition-colors ${
+                className={`cursor-pointer transition-colors text-xs sm:text-sm py-1 px-2 sm:px-3 ${
                   isUserAuthenticated() 
                     ? "hover:bg-blue-100 dark:hover:bg-blue-900" 
                     : "opacity-50 cursor-not-allowed"
@@ -478,21 +489,21 @@ export default function AIChat() {
               </Badge>
               <Badge 
                 variant="secondary" 
-                className="cursor-pointer hover:bg-green-100 dark:hover:bg-green-900 transition-colors"
+                className="cursor-pointer hover:bg-green-100 dark:hover:bg-green-900 transition-colors text-xs sm:text-sm py-1 px-2 sm:px-3"
                 onClick={() => setPrompt("How do I improve my squat form?")}
               >
                 Exercise Form
               </Badge>
               <Badge 
                 variant="secondary" 
-                className="cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900 transition-colors"
+                className="cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900 transition-colors text-xs sm:text-sm py-1 px-2 sm:px-3"
                 onClick={() => setPrompt("What should I eat for muscle building?")}
               >
                 Nutrition Advice
               </Badge>
               <Badge 
                 variant="secondary" 
-                className="cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900 transition-colors"
+                className="cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900 transition-colors text-xs sm:text-sm py-1 px-2 sm:px-3"
                 onClick={() => setPrompt("How often should I workout?")}
               >
                 Training Frequency
@@ -506,34 +517,34 @@ export default function AIChat() {
             key={message.id}
             className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} mb-4`}
           >
-            <div className={`flex gap-3 max-w-[90%] ${message.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div className={`flex gap-2 sm:gap-3 max-w-[95%] sm:max-w-[90%] ${message.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
               {/* Avatar */}
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                 message.isUser 
                   ? 'bg-gradient-to-br from-green-500 to-green-600' 
                   : 'bg-gradient-to-br from-blue-500 to-purple-600'
               }`}>
                 {message.isUser ? (
-                  <User className="h-4 w-4 text-white" />
+                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                 ) : (
-                  <Bot className="h-4 w-4 text-white" />
+                  <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                 )}
               </div>
 
               {/* Message Content */}
               <div className={`flex flex-col ${message.isUser ? 'items-end' : 'items-start'}`}>
-                <Card className={`p-4 ${
+                <Card className={`p-3 sm:p-4 ${
                   message.isUser 
                     ? 'bg-gradient-to-br from-green-500 to-green-600 text-white border-green-400' 
                     : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                 }`}>
-                  <div className={`prose prose-sm max-w-none ${
+                  <div className={`prose prose-sm max-w-none text-sm sm:text-base ${
                     message.isUser 
                       ? 'prose-invert' 
                       : 'prose-gray dark:prose-invert'
                   }`}>
                     {message.isUser ? (
-                      <p className="mb-0 text-white">{message.content}</p>
+                      <p className="mb-0 text-white leading-relaxed">{message.content}</p>
                     ) : (
                       // Only show the main response if it's not a routine generation or if there are no routines
                       !message.isRoutineGeneration || !message.routines || message.routines.length === 0 ? (
@@ -550,7 +561,8 @@ export default function AIChat() {
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Sparkles className="h-3 w-3" />
-                        <span>{message.isRoutineGeneration ? 'AI Routine Generator' : 'AI Response'}</span>
+                        <span className="hidden sm:inline">{message.isRoutineGeneration ? 'AI Routine Generator' : 'AI Response'}</span>
+                        <span className="sm:hidden">AI</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Button
@@ -645,36 +657,38 @@ export default function AIChat() {
       </div>
 
       {/* Input Area */}
-      <div className="border-t bg-white dark:bg-gray-800 p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+      <div className="border-t bg-white dark:bg-gray-800 p-3 sm:p-4">
+        <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask me anything about fitness, workouts, nutrition, or health..."
-              className="min-h-[44px] max-h-32 resize-none pr-12 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ask me about fitness, workouts, nutrition..."
+              className="min-h-[48px] sm:min-h-[44px] max-h-32 resize-none pr-12 sm:pr-16 text-sm sm:text-base bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
               disabled={loading}
             />
-            <div className="absolute right-2 top-2 text-xs text-muted-foreground">
+            <div className="absolute right-2 top-2 text-xs sm:text-sm text-muted-foreground">
               {prompt.length}/2000
             </div>
           </div>
           <Button
             type="submit"
             disabled={!prompt.trim() || loading}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-4"
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-3 sm:px-4 min-h-[48px] sm:min-h-[44px]"
           >
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
             ) : (
-              <Send className="h-4 w-4" />
+              <Send className="h-4 w-4 sm:h-5 sm:w-5" />
             )}
           </Button>
         </form>
-        <div className="text-xs text-muted-foreground mt-2 text-center">
-          Press Enter to send, Shift+Enter for new line • Try asking for &quot;workout routines&quot; to get structured plans!
+        <div className="text-xs sm:text-sm text-muted-foreground mt-2 text-center leading-relaxed">
+          <span className="block sm:inline">Press Enter to send, Shift+Enter for new line</span>
+          <span className="hidden sm:inline"> • </span>
+          <span className="block sm:inline">Try asking for "workout routines" to get structured plans!</span>
         </div>
       </div>
     </div>
