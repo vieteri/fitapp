@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "webapp/app/api/generate/route.tsx": {
+      "maxDuration": 25
+    }
+  },
+  "buildCommand": "cd webapp && npm run build",
+  "outputDirectory": "webapp/.next",
+  "installCommand": "cd webapp && npm install",
+  "framework": "nextjs",
+  "trailingSlash": false,
+  "cleanUrls": true
+}

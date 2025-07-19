@@ -3,31 +3,10 @@
     "[project]/app/(auth-pages)/sign-in/page": [
       "static/media/Geist_Variable-s.p.781b491f.woff2"
     ],
-    "[project]/app/(auth-pages)/sign-up/page": [
-      "static/media/Geist_Variable-s.p.781b491f.woff2"
-    ],
-    "[project]/app/_not-found/page": [
-      "static/media/Geist_Variable-s.p.781b491f.woff2"
-    ],
-    "[project]/app/exercises/[id]/edit/page": [
-      "static/media/Geist_Variable-s.p.781b491f.woff2"
-    ],
-    "[project]/app/exercises/new/page": [
-      "static/media/Geist_Variable-s.p.781b491f.woff2"
-    ],
-    "[project]/app/exercises/page": [
+    "[project]/app/chat/page": [
       "static/media/Geist_Variable-s.p.781b491f.woff2"
     ],
     "[project]/app/page": [
-      "static/media/Geist_Variable-s.p.781b491f.woff2"
-    ],
-    "[project]/app/routines/[id]/edit/page": [
-      "static/media/Geist_Variable-s.p.781b491f.woff2"
-    ],
-    "[project]/app/routines/[id]/page": [
-      "static/media/Geist_Variable-s.p.781b491f.woff2"
-    ],
-    "[project]/app/workouts/page": [
       "static/media/Geist_Variable-s.p.781b491f.woff2"
     ]
   },

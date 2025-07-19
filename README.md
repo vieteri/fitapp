@@ -60,6 +60,30 @@ A comprehensive fitness tracking application built with Next.js, Supabase, and A
 
 6. Visit `http://localhost:3000`
 
+## Deployment
+
+### Deploy to Vercel
+
+The app is configured to deploy from the `webapp/` subdirectory:
+
+1. **Import your GitHub repository** to Vercel
+2. **Configure build settings** (or use the included `vercel.json`):
+   - **Root Directory**: `webapp`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `.next`
+   - **Install Command**: `npm install`
+
+3. **Set environment variables** in Vercel dashboard:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   GEMINI_API_KEY=your_gemini_api_key
+   ```
+
+4. **Deploy** - Vercel will automatically deploy from your main branch
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vieteri/fitapp&project-name=fitapp&root-directory=webapp)
+
 ## Development
 
 ### Common Commands

@@ -1,19 +1,8 @@
 {
   "/(auth-pages)/sign-in/page": "app/(auth-pages)/sign-in/page.js",
-  "/(auth-pages)/sign-up/page": "app/(auth-pages)/sign-up/page.js",
-  "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/login/route": "app/api/auth/login/route.js",
-  "/api/auth/verify/route": "app/api/auth/verify/route.js",
-  "/api/exercises/[id]/route": "app/api/exercises/[id]/route.js",
-  "/api/exercises/route": "app/api/exercises/route.js",
-  "/api/routines/[id]/route": "app/api/routines/[id]/route.js",
-  "/api/routines/route": "app/api/routines/route.js",
-  "/exercises/[id]/edit/page": "app/exercises/[id]/edit/page.js",
-  "/exercises/new/page": "app/exercises/new/page.js",
-  "/exercises/page": "app/exercises/page.js",
+  "/api/generate/route": "app/api/generate/route.js",
+  "/chat/page": "app/chat/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/page": "app/page.js",
-  "/routines/[id]/edit/page": "app/routines/[id]/edit/page.js",
-  "/routines/[id]/page": "app/routines/[id]/page.js",
-  "/workouts/page": "app/workouts/page.js"
+  "/page": "app/page.js"
 }
