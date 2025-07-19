@@ -1,0 +1,8 @@
+robotframework>=6.0,<8.0
+robotframework-seleniumlibrary>=6.0,<7.0
+robotframework-screencaplibrary>=1.5,<2.0
+robotframework-requests>=0.9,<1.0
+robotframework-jsonlibrary>=0.5,<1.0
+selenium>=4.15,<5.0
+webdriver-manager>=4.0,<5.0
+Pillow>=10.0,<11.0

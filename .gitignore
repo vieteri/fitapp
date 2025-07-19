@@ -1,20 +1,28 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
+webapp/node_modules
+webapp/.pnp
+webapp/pnp.js
+webapp/.yarn/install-state.gz
+robot-tests/venv
+robot-tests/__pycache__
 
 # testing
-/coverage
+webapp/coverage
+robot-tests/results
+robot-tests/screenshots
+robot-tests/log.html
+robot-tests/output.xml
+robot-tests/report.html
+robot-tests/selenium-screenshot-*.png
 
 # next.js
-/.next/
-/out/
+webapp/.next/
+webapp/out/
 
 # production
-/build
+webapp/build
 
 # misc
 .DS_Store
@@ -28,18 +36,26 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+webapp/.env*.local
+webapp/.env
 
 # vercel
-.vercel
+webapp/.vercel
 
 # typescript
-*.tsbuildinfo
-next-env.d.ts
+webapp/*.tsbuildinfo
+webapp/next-env.d.ts
 
 # IDE
 .vscode/
 .idea/
+.cursor/
 
 # Bun
-bun.lockb
+webapp/bun.lockb
 .cursorrules
+
+# Supabase
+webapp/supabase/.branches
+webapp/supabase/.temp
+webapp/supabase/.env.keys

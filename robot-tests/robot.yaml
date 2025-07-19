@@ -1,0 +1,27 @@
+tasks:
+  Run all tests:
+    shell: python -m robot --outputdir results tests/
+  
+  Run auth tests:
+    shell: python -m robot --outputdir results tests/auth/
+  
+  Run exercise tests:
+    shell: python -m robot --outputdir results tests/exercises/
+  
+  Run routine tests:
+    shell: python -m robot --outputdir results tests/routines/
+  
+  Run workout tests:
+    shell: python -m robot --outputdir results tests/workouts/
+  
+  Run profile tests:
+    shell: python -m robot --outputdir results tests/profile/
+
+condaConfigFile: conda.yaml
+artifactsDir: results
+PATH:
+  - .
+PYTHONPATH:
+  - .
+ignoreFiles:
+  - .gitignore

@@ -1,0 +1,7 @@
+robotframework
+robotframework-seleniumlibrary
+robotframework-screencaplibrary
+robotframework-requests
+selenium
+webdriver-manager
+Pillow

@@ -1,0 +1,35 @@
+# Environment variables
+.env
+
+# Test results and reports
+reports/
+screenshots/
+log.html
+output.xml
+report.html
+
+# Screenshot files
+*.png
+selenium-screenshot-*.png
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archive directories (keep structure but ignore contents)
+archive/*/
+!archive/.gitkeep

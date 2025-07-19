@@ -1,136 +1,108 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# FitApp
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+A comprehensive fitness tracking application built with Next.js, Supabase, and AI-powered coaching features.
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+## Project Structure
+
+- **`webapp/`** - Next.js application with Supabase backend
+- **`robot-tests/`** - End-to-end test suite using Robot Framework
 
 ## Features
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Middleware
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+- **Exercise Management** - Create and manage custom exercises with muscle group targeting
+- **Workout Routines** - Build reusable workout templates with exercises, sets, and reps
+- **Workout Tracking** - Log actual workout sessions with performance data
+- **Notes & Rest Timers** - Multi-level notes system and configurable rest timers
+- **AI Fitness Coach** - Gemini 2.0 Flash integration with text-to-speech capabilities
+- **User Profiles** - Personal fitness profiles with stats and history
 
-## Demo
+## Quick Start
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+### Prerequisites
 
-## Deploy to Vercel
+- Node.js 18+ or Bun
+- Supabase account and project
+- Google Gemini API key (for AI features)
 
-Vercel deployment will guide you through creating a Supabase account and project.
+### Setup
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
-
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
-
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
-
-## Clone and run locally
-
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
-
-2. Create a Next.js app using the Supabase Starter template npx command
-
+1. Clone the repository:
    ```bash
-   npx create-next-app -e with-supabase
+   git clone <repository-url>
+   cd fitapp
    ```
 
-3. Use `cd` to change into the app's directory
-
+2. Set up the web application:
    ```bash
-   cd name-of-new-app
+   cd webapp/
+   npm install  # or bun install
    ```
 
-4. Rename `.env.example` to `.env.local` and update the following:
-
+3. Configure environment variables:
+   ```bash
+   cp .env.example .env.local
    ```
-   NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=[INSERT SUPABASE PROJECT API ANON KEY]
+   
+   Add your Supabase and Gemini API credentials:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   GEMINI_API_KEY=your_gemini_api_key
    ```
 
-   Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://app.supabase.com/project/_/settings/api)
+4. Run database migrations in your Supabase dashboard:
+   - Execute the SQL files in `webapp/supabase/migrations/`
 
-5. You can now run the Next.js local development server:
-
+5. Start the development server:
    ```bash
    npm run dev
    ```
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+6. Visit `http://localhost:3000`
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+## Development
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+### Common Commands
 
-## Feedback and issues
-
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
-
-## More Supabase examples
-
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
-
-
-## AI Features
-
-### AI Fitness Coach with Voice (TTS)
-
-The application now includes an AI-powered fitness coach with text-to-speech capabilities:
-
-#### Features:
-- **Gemini 2.0 Flash Integration**: Uses Google's latest Gemini model for generating fitness advice
-- **Text-to-Speech**: Browser-based TTS for audio playback of responses
-- **Voice Selection**: Choose from available system voices for personalized experience
-- **Fitness-Optimized Prompts**: Specialized system prompts for workout guidance and motivation
-- **Auto-Play**: Automatic audio playback after generating responses
-
-#### Usage:
-1. Navigate to `/chat/tts` to access the voice-enabled chat
-2. Type your fitness question or use the regular text chat at `/chat`
-3. The AI will generate personalized advice and automatically play it as audio
-4. Select different voices from the dropdown for your preference
-
-#### Technical Implementation:
-- **API Route**: `/api/generate-tts` - Handles Gemini text generation
-- **Custom Hook**: `useTTS()` - Manages browser TTS functionality
-- **Components**: 
-  - `SimpleTTSChat` - Main TTS chat interface
-  - `AITTSChat` - Advanced version with speech recognition (optional)
-
-#### Environment Variables:
 ```bash
-GEMINI_API_KEY=your_gemini_api_key_here
+cd webapp/
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run generate-types   # Generate Supabase TypeScript types
 ```
 
-#### Supported Browsers:
-- Chrome/Chromium (recommended)
-- Firefox
-- Safari
-- Edge
+### Testing
 
-The TTS functionality uses the Web Speech API, which is supported in all modern browsers.
+- **Unit Tests**: Bun test runner in `webapp/__tests__/`
+- **E2E Tests**: Robot Framework in `robot-tests/`
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)
+- **UI Components**: shadcn/ui, Radix UI
+- **AI**: Google Gemini 2.0 Flash
+- **Testing**: Bun Test, Robot Framework
+- **Deployment**: Vercel
+
+## Database Schema
+
+- **exercises** - Global exercise library
+- **profiles** - User profiles and preferences  
+- **routines** - Workout templates
+- **workouts** - Individual workout sessions
+- **routine_exercises** - Exercise configurations in routines
+- **workout_exercises** - Actual exercise performance data
+- **exercise_sets** - Individual set tracking
+
+## Contributing
+
+1. Follow the code conventions outlined in `CLAUDE.md`
+2. Use kebab-case for component filenames
+3. Prefer Server Components over Client Components
+4. Always include loading and error states
+5. Run tests before submitting PRs
+
+## License
+
+MIT License - see LICENSE file for details
