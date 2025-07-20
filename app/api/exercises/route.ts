@@ -15,10 +15,10 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   const query = extractAndValidateQuery(request, exerciseQuerySchema);
   
   // Build database query options
-  const options = {
+  const options: any = {
     orderBy: { column: 'name', ascending: true },
-    limit: query.limit,
-    offset: query.offset || (query.page - 1) * query.limit
+    limit: query.limit || 10,
+    offset: query.offset || ((query.page || 1) - 1) * (query.limit || 10)
   };
   
   // Add search filter if provided
@@ -40,8 +40,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   
   // Return paginated response
   return Responses.paginated(result.data, {
-    page: query.page,
-    limit: query.limit,
+    page: query.page || 1,
+    limit: query.limit || 10,
     total: result.data.length // Note: In a real app, you'd get the actual total count
   });
 }); 

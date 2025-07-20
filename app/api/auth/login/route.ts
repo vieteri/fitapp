@@ -40,7 +40,6 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   // Return standardized success response with authentication headers
   const headers = {
     'X-Auth-User-ID': data.user.id,
-    'X-Session-ID': data.session.id || '',
     'X-Token-Expires': new Date(data.session.expires_at! * 1000).toISOString(),
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Pragma': 'no-cache',
