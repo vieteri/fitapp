@@ -454,9 +454,9 @@ export default function AIChat() {
   };
 
   return (
-    <div className="flex flex-col h-[600px] sm:h-[600px] h-[calc(100vh-8rem)] bg-gray-50 dark:bg-gray-900/50">
+    <div className="flex flex-col h-[600px] sm:h-[600px] h-[calc(100vh-8rem)] bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-900 dark:to-gray-800">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
         {messages.length === 0 && (
           <div className="text-center py-8 sm:py-12">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-3 sm:mb-4">
@@ -517,34 +517,34 @@ export default function AIChat() {
             key={message.id}
             className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} mb-4`}
           >
-            <div className={`flex gap-2 sm:gap-3 max-w-[95%] sm:max-w-[90%] ${message.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div className={`flex gap-3 sm:gap-4 max-w-[92%] sm:max-w-[85%] ${message.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
               {/* Avatar */}
-              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ${
                 message.isUser 
-                  ? 'bg-gradient-to-br from-green-500 to-green-600' 
-                  : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600' 
+                  : 'bg-gradient-to-br from-blue-500 to-indigo-600'
               }`}>
                 {message.isUser ? (
-                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 ) : (
-                  <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                  <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 )}
               </div>
 
               {/* Message Content */}
               <div className={`flex flex-col ${message.isUser ? 'items-end' : 'items-start'}`}>
-                <Card className={`p-3 sm:p-4 ${
+                <Card className={`p-4 sm:p-5 shadow-sm border-0 ${
                   message.isUser 
-                    ? 'bg-gradient-to-br from-green-500 to-green-600 text-white border-green-400' 
-                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white' 
+                    : 'bg-white dark:bg-gray-800 shadow-md'
                 }`}>
-                  <div className={`prose prose-sm max-w-none text-sm sm:text-base ${
+                  <div className={`prose prose-sm max-w-none text-base sm:text-lg leading-relaxed ${
                     message.isUser 
-                      ? 'prose-invert' 
-                      : 'prose-gray dark:prose-invert'
+                      ? 'prose-invert text-white' 
+                      : 'prose-gray dark:prose-invert text-gray-800 dark:text-gray-200'
                   }`}>
                     {message.isUser ? (
-                      <p className="mb-0 text-white leading-relaxed">{message.content}</p>
+                      <p className="mb-0 text-white leading-relaxed font-medium">{message.content}</p>
                     ) : (
                       // Only show the main response if it's not a routine generation or if there are no routines
                       !message.isRoutineGeneration || !message.routines || message.routines.length === 0 ? (
@@ -558,17 +558,17 @@ export default function AIChat() {
                   </div>
                   
                   {!message.isUser && (
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                         <Sparkles className="h-3 w-3" />
-                        <span className="hidden sm:inline">{message.isRoutineGeneration ? 'AI Routine Generator' : 'AI Response'}</span>
-                        <span className="sm:hidden">AI</span>
+                        <span className="hidden sm:inline font-medium">{message.isRoutineGeneration ? 'AI Routine Generator' : 'AI Response'}</span>
+                        <span className="sm:hidden font-medium">AI</span>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 px-2 text-xs"
+                          className="h-7 px-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                           onClick={() => setExpandedDebug(expandedDebug === message.id ? null : message.id)}
                           title="Toggle debug view"
                         >
@@ -578,7 +578,7 @@ export default function AIChat() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 px-2 text-xs"
+                          className="h-7 px-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                           onClick={() => copyToClipboard(message.content, message.id)}
                         >
                           {copiedId === message.id ? (
@@ -629,7 +629,7 @@ export default function AIChat() {
                   </div>
                 )}
                 
-                <div className="text-xs text-muted-foreground mt-1 px-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 px-1 font-medium">
                   {formatTime(message.timestamp)}
                 </div>
               </div>
@@ -639,14 +639,14 @@ export default function AIChat() {
 
         {loading && (
           <div className="flex justify-start mb-4">
-            <div className="flex gap-3 max-w-[80%]">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                <Bot className="h-4 w-4 text-white" />
+            <div className="flex gap-4 max-w-[80%]">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <Card className="p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">AI is thinking...</span>
+              <Card className="p-4 sm:p-5 bg-white dark:bg-gray-800 shadow-md border-0">
+                <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                  <span className="text-sm sm:text-base font-medium">AI is thinking...</span>
                 </div>
               </Card>
             </div>
@@ -657,8 +657,8 @@ export default function AIChat() {
       </div>
 
       {/* Input Area */}
-      <div className="border-t bg-white dark:bg-gray-800 p-3 sm:p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-6">
+        <form onSubmit={handleSubmit} className="flex gap-3 sm:gap-4">
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
@@ -666,28 +666,28 @@ export default function AIChat() {
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me about fitness, workouts, nutrition..."
-              className="min-h-[48px] sm:min-h-[44px] max-h-32 resize-none pr-12 sm:pr-16 text-sm sm:text-base bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg"
+              className="min-h-[52px] sm:min-h-[48px] max-h-32 resize-none pr-14 sm:pr-16 text-base sm:text-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl shadow-sm"
               disabled={loading}
             />
-            <div className="absolute right-2 top-2 text-xs sm:text-sm text-muted-foreground">
+            <div className="absolute right-3 top-3 text-xs text-gray-400 dark:text-gray-500 font-medium">
               {prompt.length}/2000
             </div>
           </div>
           <Button
             type="submit"
             disabled={!prompt.trim() || loading}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-3 sm:px-4 min-h-[48px] sm:min-h-[44px]"
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-4 sm:px-5 min-h-[52px] sm:min-h-[48px] rounded-xl"
           >
             {loading ? (
-              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
             ) : (
-              <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Send className="h-5 w-5 sm:h-6 sm:w-6" />
             )}
           </Button>
         </form>
-        <div className="text-xs sm:text-sm text-muted-foreground mt-2 text-center leading-relaxed">
-          <span className="block sm:inline">Press Enter to send, Shift+Enter for new line</span>
-          <span className="hidden sm:inline"> • </span>
+        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-3 text-center leading-relaxed">
+          <span className="block sm:inline font-medium">Press Enter to send, Shift+Enter for new line</span>
+          <span className="hidden sm:inline text-gray-400"> • </span>
           <span className="block sm:inline">Try asking for &quot;workout routines&quot; to get structured plans!</span>
         </div>
       </div>

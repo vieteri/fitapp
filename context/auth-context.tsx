@@ -84,7 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearTimeout(timeoutId);
             
             if (response.ok) {
-              const data = await response.json();
+              const result = await response.json();
+              const data = result.data; // Extract data from new API response structure
               
               if (mounted) {
                 if (data.valid) {

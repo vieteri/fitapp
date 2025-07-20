@@ -100,7 +100,7 @@ export function TableRenderer({ content }: TableRendererProps) {
       } else {
         // Regular text block
         return (
-          <div key={blockIndex} className="mb-4">
+          <div key={blockIndex} className="mb-4 sm:mb-6">
             {parseMarkdown(block)}
           </div>
         );
@@ -147,28 +147,28 @@ export function TableRenderer({ content }: TableRendererProps) {
     if (headers.length === 0) return null;
     
     return (
-      <div key={blockIndex} className="mb-6">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300 dark:border-gray-600 rounded-lg">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+      <div key={blockIndex} className="mb-6 sm:mb-8">
+        <div className="overflow-x-auto shadow-sm rounded-xl border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full">
+            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600">
               <tr>
                 {headers.map((header, index) => (
                   <th
                     key={index}
-                    className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-100 border-b border-gray-300 dark:border-gray-600"
+                    className="px-4 sm:px-6 py-3 sm:py-4 text-left text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-600"
                   >
                     {parseInlineMarkdown(header)}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
               {rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
                   {row.map((cell, cellIndex) => (
                     <td
                       key={cellIndex}
-                      className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 border-r border-gray-200 dark:border-gray-600 last:border-r-0"
+                      className="px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base text-gray-800 dark:text-gray-200 border-r border-gray-100 dark:border-gray-700 last:border-r-0 leading-relaxed"
                     >
                       {parseInlineMarkdown(cell)}
                     </td>
@@ -183,7 +183,7 @@ export function TableRenderer({ content }: TableRendererProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 sm:space-y-6">
       {renderContent(content)}
     </div>
   );

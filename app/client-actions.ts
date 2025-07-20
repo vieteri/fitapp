@@ -16,11 +16,14 @@ export const signIn = async (formData: FormData, setUser: (user: User | null) =>
     body: JSON.stringify({ email, password }),
   });
 
-  const data = await response.json();
+  const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error);
+    throw new Error(result.error || 'Login failed');
   }
+
+  // Extract data from the new API response structure
+  const data = result.data;
 
   // Store tokens in localStorage
   localStorage.setItem('access_token', data.access_token);

@@ -1,18 +1,25 @@
-import { verifyJWT } from '@/utils/auth';
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { authenticateRequest, isAuthError } from '@/lib/auth/middleware';
+import { withErrorHandling } from '@/lib/api/errors';
+import { Responses } from '@/lib/api/responses';
 
-export async function GET(request: Request) {
-  const result = await verifyJWT(request.headers.get('authorization'));
-
-  if ('error' in result) {
-    return NextResponse.json(
-      { valid: false, error: result.error },
-      { status: result.status }
-    );
+/**
+ * Verify authentication token
+ * @description Validates the authentication token and returns user info
+ */
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  const authResult = await authenticateRequest(request);
+  
+  if (isAuthError(authResult)) {
+    return Responses.success({
+      valid: false,
+      error: authResult.error
+    });
   }
 
-  const { user } = result;
-  return NextResponse.json({
+  const { user } = authResult;
+  
+  return Responses.success({
     valid: true,
     user: {
       id: user.id,
@@ -20,4 +27,4 @@ export async function GET(request: Request) {
       created_at: user.created_at
     }
   });
-}
+});

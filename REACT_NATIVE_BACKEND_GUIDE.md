@@ -701,8 +701,16 @@ const getWorkoutHistory = async () => {
 
 ## AI Chat Integration
 
-### AI Fitness Coach
-The backend includes an AI fitness coach powered by Google Gemini that provides personalized advice based on user profile data.
+### AI Fitness Coach (Mobile-Optimized)
+The backend includes an AI fitness coach powered by Google Gemini that provides **mobile-optimized responses** specifically designed for React Native chat interfaces on iPhone screens.
+
+#### Mobile Chat Features
+- **Thumb-scrolling optimized** content structure
+- **Short paragraphs** (1-2 sentences) for easy mobile reading
+- **Visual hierarchy** with emojis and bold headers
+- **Scannable content** with bullet points and numbered lists
+- **Portrait mode optimization** for iPhone screens
+- **Conversational tone** perfect for chat interfaces
 
 #### Send Chat Message
 ```javascript
@@ -726,31 +734,76 @@ interface AIResponse {
   response: string; // The AI's text response
   isRoutineGeneration?: boolean;
   routines?: GeneratedRoutine[]; // If routine generation was requested
-  explanation?: string;
+  explanation?: string; // Available when routines are generated
+  isAuthenticated?: boolean; // Indicates if user is logged in
 }
 
 interface GeneratedRoutine {
   name: string;
   description: string;
-  exercises: {
-    exercise_id: string;
-    exercise_name: string;
-    sets: number;
-    reps: number;
-    weight: number | null;
-    duration_minutes: number | null;
-    rest_seconds: number; // NEW: Always includes rest time
-    notes: string; // NEW: Always includes exercise notes
-    order_index: number;
-  }[];
+  exercises: GeneratedExercise[];
+}
+
+interface GeneratedExercise {
+  exercise_id: string;
+  exercise_name: string;
+  sets: ExerciseSet[]; // Array of individual sets
+  rest_seconds: number; // Rest time between sets (always provided)
+  notes: string; // Exercise-specific guidance (always provided)
+  order_index: number;
+}
+
+interface ExerciseSet {
+  reps: number | null; // Null for time-based exercises
+  weight: number | null; // Weight in kg, null for bodyweight
+  duration_minutes: number | null; // Duration for cardio exercises
 }
 ```
 
-**Response Examples:**
-```javascript
-// POST /api/generate - Chat Response
+#### LLM Routine Generation Features
+When `generateRoutines: true` is sent with the prompt, the AI:
+
+1. **Exercise Selection**: Automatically selects from available exercises in the database
+2. **Set Structure**: Creates detailed set-by-set breakdowns with individual rep/weight/duration targets
+3. **Rest Times**: Intelligently assigns rest periods (30-90s for strength, 2-5 minutes for cardio)
+4. **Exercise Notes**: Provides form tips, modifications, and technique cues for each exercise
+5. **Routine Balance**: Ensures muscle group balance and proper exercise ordering
+6. **Personalization**: Uses user profile data (age, BMI, fitness level) for customized recommendations
+
+#### Automatic Data Sanitization
+The backend automatically sanitizes AI responses to ensure data integrity:
+
+- **Reps Validation**: Converts text like "to failure" or "max reps" to integer values (typically 15)
+- **Required Fields**: Ensures `notes` and `rest_seconds` are never empty
+- **Default Values**: Provides fallback values if AI omits required fields
+- **Type Safety**: Converts all numeric fields to proper types
+
+#### Error Handling for Routine Generation
+```typescript
+// Authentication required error
 {
-  "response": "Based on your profile (John, 34 years old, BMI: 22.9), I recommend starting with 3 sets of push-ups, 12-15 reps each. Focus on proper form and take 60-90 seconds rest between sets.",
+  "error": "Authentication required for routine generation. Please sign in to create personalized workout routines.",
+  "code": "auth_required",
+  "requiresAuth": true
+}
+
+// Timeout error (AI processing took too long)
+{
+  "error": "Request timed out. Please try again with a simpler request.",
+  "code": "timeout"
+}
+
+// No exercises available
+{
+  "error": "No exercises available. Please contact support."
+}
+```
+
+**Mobile-Optimized Response Examples:**
+```javascript
+// POST /api/generate - Mobile Chat Response
+{
+  "response": "**🎯 Quick Answer**\nStart with 3 sets of push-ups, 12-15 reps each.\n\n**💡 Key Points**\n• Focus on proper form over speed\n• Take 60-90 seconds rest between sets\n• Keep core engaged throughout\n\n**🚀 Next**\nStart with wall push-ups if regular ones are too challenging!",
   "isRoutineGeneration": false
 }
 
@@ -766,10 +819,11 @@ interface GeneratedRoutine {
         {
           "exercise_id": "ex-1",
           "exercise_name": "Push-ups",
-          "sets": 3,
-          "reps": 12,
-          "weight": null,
-          "duration_minutes": null,
+          "sets": [
+            {"reps": 12, "weight": null, "duration_minutes": null},
+            {"reps": 12, "weight": null, "duration_minutes": null},
+            {"reps": 12, "weight": null, "duration_minutes": null}
+          ],
           "rest_seconds": 60,
           "notes": "Focus on proper form, keep core engaged",
           "order_index": 0
@@ -777,17 +831,17 @@ interface GeneratedRoutine {
         {
           "exercise_id": "ex-2",
           "exercise_name": "Running",
-          "sets": 1,
-          "reps": 0,
-          "weight": null,
-          "duration_minutes": 15,
+          "sets": [
+            {"reps": null, "weight": null, "duration_minutes": 15}
+          ],
           "rest_seconds": 300,
           "notes": "Maintain steady pace, breathe regularly",
           "order_index": 1
         }
       ]
     }
-  ]
+  ],
+  "explanation": "This routine focuses on building foundational upper body strength and includes cardio for overall fitness. Perfect for beginners who want to establish a consistent workout habit."
 }
 ```
 
@@ -1005,6 +1059,371 @@ const apiCall = async (url, options) => {
     throw error;
   }
 };
+```
+
+## Mobile UI Component Examples
+
+### Chat Interface Component
+```javascript
+// components/ChatInterface.js
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+const ChatInterface = () => {
+  const [messages, setMessages] = useState([]);
+  const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const scrollViewRef = useRef();
+
+  const sendMessage = async () => {
+    if (!inputText.trim() || loading) return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: inputText,
+      isUser: true,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setLoading(true);
+
+    try {
+      const response = await ApiService.sendChatMessage(inputText);
+      
+      const aiMessage = {
+        id: Date.now() + 1,
+        text: response.response,
+        isUser: false,
+        timestamp: new Date(),
+        routines: response.routines
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderMessage = (message) => (
+    <View key={message.id} style={[
+      styles.messageContainer,
+      message.isUser ? styles.userMessage : styles.aiMessage
+    ]}>
+      <View style={[
+        styles.messageBubble,
+        message.isUser ? styles.userBubble : styles.aiBubble
+      ]}>
+        <Text style={[
+          styles.messageText,
+          message.isUser ? styles.userText : styles.aiText
+        ]}>
+          {message.text}
+        </Text>
+        {message.routines && message.routines.length > 0 && (
+          <View style={styles.routinesContainer}>
+            {message.routines.map((routine, index) => (
+              <RoutinePreview key={index} routine={routine} />
+            ))}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd()}
+      >
+        {messages.map(renderMessage)}
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>AI is thinking...</Text>
+          </View>
+        )}
+      </ScrollView>
+      
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.textInput}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="Ask about fitness, workouts, nutrition..."
+          multiline
+          maxLength={2000}
+        />
+        <TouchableOpacity 
+          style={[styles.sendButton, (!inputText.trim() || loading) && styles.sendButtonDisabled]}
+          onPress={sendMessage}
+          disabled={!inputText.trim() || loading}
+        >
+          <Ionicons name="send" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  messagesContainer: {
+    flex: 1,
+  },
+  messagesContent: {
+    padding: 16,
+    paddingBottom: 20,
+  },
+  messageContainer: {
+    marginBottom: 16,
+  },
+  userMessage: {
+    alignItems: 'flex-end',
+  },
+  aiMessage: {
+    alignItems: 'flex-start',
+  },
+  messageBubble: {
+    maxWidth: '85%',
+    padding: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  userBubble: {
+    backgroundColor: '#3b82f6',
+    borderBottomRightRadius: 8,
+  },
+  aiBubble: {
+    backgroundColor: '#ffffff',
+    borderBottomLeftRadius: 8,
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  userText: {
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  aiText: {
+    color: '#1f2937',
+  },
+  routinesContainer: {
+    marginTop: 12,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    color: '#6b7280',
+    fontStyle: 'italic',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    alignItems: 'flex-end',
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    maxHeight: 120,
+    backgroundColor: '#f9fafb',
+  },
+  sendButton: {
+    backgroundColor: '#3b82f6',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+});
+
+export default ChatInterface;
+```
+
+### Routine Preview Component
+```javascript
+// components/RoutinePreview.js
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+const RoutinePreview = ({ routine, onSave }) => {
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <Ionicons name="fitness" size={20} color="#3b82f6" />
+          <Text style={styles.title}>{routine.name}</Text>
+        </View>
+        <TouchableOpacity style={styles.saveButton} onPress={() => onSave?.(routine)}>
+          <Ionicons name="bookmark" size={16} color="white" />
+          <Text style={styles.saveText}>Save</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <Text style={styles.description}>{routine.description}</Text>
+      
+      <View style={styles.exercisesList}>
+        {routine.exercises.map((exercise, index) => (
+          <View key={index} style={styles.exerciseRow}>
+            <View style={styles.exerciseNumber}>
+              <Text style={styles.exerciseNumberText}>{index + 1}</Text>
+            </View>
+            <View style={styles.exerciseDetails}>
+              <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
+              <View style={styles.exerciseStats}>
+                <Text style={styles.statText}>
+                  {exercise.sets} sets × {exercise.reps} reps
+                </Text>
+                {exercise.rest_seconds && (
+                  <Text style={styles.restText}>
+                    Rest: {exercise.rest_seconds}s
+                  </Text>
+                )}
+              </View>
+              {exercise.notes && (
+                <Text style={styles.exerciseNotes}>{exercise.notes}</Text>
+              )}
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginLeft: 8,
+  },
+  saveButton: {
+    backgroundColor: '#3b82f6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  saveText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  description: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  exercisesList: {
+    gap: 12,
+  },
+  exerciseRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  exerciseNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  exerciseNumberText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  exerciseDetails: {
+    flex: 1,
+  },
+  exerciseName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  exerciseStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 4,
+  },
+  statText: {
+    fontSize: 14,
+    color: '#4b5563',
+  },
+  restText: {
+    fontSize: 12,
+    color: '#6b7280',
+    backgroundColor: '#e5e7eb',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  exerciseNotes: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+});
+
+export default RoutinePreview;
 ```
 
 ## React Native Implementation Examples
