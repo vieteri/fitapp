@@ -2,8 +2,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from '@/utils/supabase/server';
 import { verifyJWT } from '@/utils/auth';
 
-// Set maximum duration for this serverless function (25 seconds)
-export const maxDuration = 25;
+// Set maximum duration for this serverless function (60 seconds for Vercel Pro)
+export const maxDuration = 60;
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -222,10 +222,10 @@ ${exerciseList}
 
 USER REQUEST: ${prompt}
 
-Please create 1 comprehensive workout routine using these exercises. Make sure to use exercise IDs from the list above. Consider the user's profile information when designing the routine.`;
+Please create workout routines using these exercises based on the user's request. Make sure to use exercise IDs from the list above. Consider the user's profile information when designing the routines. If the user requests multiple routines, provide that many distinct routines with different focuses (e.g., upper body, lower body, full body).`;
 
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash",
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash-lite",
         generationConfig: {
           temperature: 0.7,
         }
@@ -302,8 +302,8 @@ Please create 1 comprehensive workout routine using these exercises. Make sure t
     // Regular chat response with profile context (works for both authenticated and unauthenticated users)
     const enhancedPrompt = `${fitnessSystemPrompt}${profileContext}\n\nUser question: ${prompt}`;
 
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash",
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash-lite",
       generationConfig: {
         temperature: 0.7,
       }

@@ -1,7 +1,7 @@
 {
   "functions": {
-    "app/api/generate/route.tsx": {
-      "maxDuration": 25
+    "app/api/generate/route.ts": {
+      "maxDuration": 60
     }
   },
   "buildCommand": "npm run build",
