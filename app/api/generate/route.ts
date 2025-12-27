@@ -225,7 +225,7 @@ USER REQUEST: ${prompt}
 Please create 1 comprehensive workout routine using these exercises. Make sure to use exercise IDs from the list above. Consider the user's profile information when designing the routine.`;
 
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash-lite-preview-06-17",
+        model: "gemini-2.5-flash",
         generationConfig: {
           temperature: 0.7,
         }
